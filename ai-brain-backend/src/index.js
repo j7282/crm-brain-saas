@@ -10,7 +10,7 @@ const path = require('path');
 const FormData = require('form-data');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const QRCode = require('qrcode');
 const pino = require('pino');
 const Datastore = require('@seald-io/nedb');
@@ -113,15 +113,26 @@ async function connectToWhatsApp(forceNew = false) {
             waSocket = null;
         }
 
+        let version = [2, 3000, 1015901307]; // Versión forzada estable
+        try {
+            const { version: latestVersion, isLatest } = await fetchLatestBaileysVersion();
+            console.log(`[WhatsApp] Usando versión WA Web: ${latestVersion} (isLatest: ${isLatest})`);
+            version = latestVersion;
+        } catch (vErr) {
+            console.warn('[WhatsApp] Error obteniendo versión, usando fallback:', vErr.message);
+        }
+
         waSocket = makeWASocket({
+            version,
             auth: state,
             printQRInTerminal: true,
             logger: pino({ level: 'info' }),
-            browser: ['Mac OS', 'Chrome', '101.0.4951.54'], // Signature altamente compatible
+            browser: ['Ubuntu', 'Chrome', '110.0.5563.147'],
             connectTimeoutMs: 60000,
-            defaultQueryTimeoutMs: 20000,
+            defaultQueryTimeoutMs: 30000,
             keepAliveIntervalMs: 30000,
-            generateHighQualityLinkPreview: false
+            generateHighQualityLinkPreview: false,
+            syncFullHistory: false
         });
 
         waSocket.ev.on('connection.update', async (update) => {
