@@ -50,9 +50,11 @@ function App() {
     scrollToBottom();
   }, [messages]);
 
-  // Polling para QR de WhatsApp
+  // Polling para QR de WhatsApp con auto-reset si no aparece
   useEffect(() => {
     let interval;
+    let pollCount = 0;
+    const MAX_POLLS_BEFORE_RESET = 10; // 20 segundos sin QR = reintentar
     if (isOnboarding && onboardingStep === 2 && token) {
       interval = setInterval(async () => {
         try {
@@ -65,12 +67,27 @@ function App() {
 
           if (data.status === 'connected') {
             clearInterval(interval);
-            setTimeout(() => setOnboardingStep(3), 1500); // Transition on success
+            setTimeout(() => setOnboardingStep(3), 1500);
+          }
+
+          // Si no hay QR despues de MAX_POLLS, forzar reset
+          if (!data.qr && data.status !== 'connected') {
+            pollCount++;
+            if (pollCount >= MAX_POLLS_BEFORE_RESET) {
+              pollCount = 0;
+              await fetch(`${BACKEND_URL}/api/whatsapp/reset`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              console.log('[WhatsApp] Auto-reset triggered after timeout');
+            }
+          } else {
+            pollCount = 0;
           }
         } catch (err) {
           console.error("Error polling QR:", err);
         }
-      }, 3000);
+      }, 2000);
     }
     return () => clearInterval(interval);
   }, [isOnboarding, onboardingStep, token]);
@@ -301,14 +318,30 @@ function App() {
                   {waQR ? (
                     <img src={waQR} alt="WhatsApp QR" style={{ width: '150px', height: '150px' }} />
                   ) : (
-                    <div style={{ color: 'var(--bg-secondary)', textAlign: 'center', fontSize: '0.8rem', padding: '10px' }}>
-                      {waStatus === 'connecting' ? 'Iniciando...' : 'Generando QR Real...'}
+                    <div style={{ color: '#999', textAlign: 'center', fontSize: '0.8rem', padding: '10px' }}>
+                      <div style={{ fontSize: '2rem', marginBottom: '8px' }}>⏳</div>
+                      <div>Generando QR...</div>
+                      <div style={{ fontSize: '0.65rem', marginTop: '4px', color: '#bbb' }}>Conectando a WhatsApp</div>
                     </div>
                   )}
                 </div>
-                <p style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem' }}>
+                <p style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem', marginBottom: '8px' }}>
                   {waStatus === 'connected' ? '¡Dispositivo Vinculado! ✅' : 'Escanea este código con tu WhatsApp'}
                 </p>
+                {!waQR && waStatus !== 'connected' && (
+                  <button
+                    onClick={async () => {
+                      setWaQR(null);
+                      await fetch(`${BACKEND_URL}/api/whatsapp/reset`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                      });
+                    }}
+                    style={{ fontSize: '0.75rem', background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '4px 12px', borderRadius: '8px', cursor: 'pointer', marginTop: '4px' }}
+                  >
+                    🔄 Reintentar QR
+                  </button>
+                )}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>

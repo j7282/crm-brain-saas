@@ -69,48 +69,82 @@ const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID;
 // Gestión de WhatsApp (Real QR)
 let waSocket = null;
 let currentQR = null;
-let connectionStatus = 'disconnected'; // 'disconnected', 'connecting', 'qr', 'connected'
+let connectionStatus = 'disconnected';
+const WA_AUTH_DIR = path.join(__dirname, '../wa_auth');
 
-async function connectToWhatsApp() {
-    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
-
-    waSocket = makeWASocket({
-        auth: state,
-        printQRInTerminal: true,
-        logger: pino({ level: 'silent' })
-    });
-
-    waSocket.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect, qr } = update;
-
-        if (qr) {
-            currentQR = await QRCode.toDataURL(qr);
-            connectionStatus = 'qr';
-            console.log('[WhatsApp] Nuevo QR generado.');
-        }
-
-        if (connection === 'close') {
-            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            console.log('[WhatsApp] Conexión cerrada. Reintentando:', shouldReconnect);
-            connectionStatus = 'disconnected';
-            if (shouldReconnect) connectToWhatsApp();
-        } else if (connection === 'open') {
-            console.log('[WhatsApp] ¡Conectado exitosamente!');
-            connectionStatus = 'connected';
-            currentQR = null;
-        }
-    });
-
-    waSocket.ev.on('creds.update', saveCreds);
-
-    waSocket.ev.on('messages.upsert', async m => {
-        // Aquí se integrará la lógica de respuesta automática real
-        // console.log(JSON.stringify(m, undefined, 2));
-    });
+// Limpiar sesión caducada y forzar nuevo QR en cada inicio
+function clearWASession() {
+    if (fs.existsSync(WA_AUTH_DIR)) {
+        fs.rmSync(WA_AUTH_DIR, { recursive: true, force: true });
+    }
+    fs.mkdirSync(WA_AUTH_DIR, { recursive: true });
+    console.log('[WhatsApp] Sesión limpia → esperando QR nuevo');
 }
 
-// Inicializar conexión
-connectToWhatsApp();
+async function connectToWhatsApp(forceNew = false) {
+    if (forceNew || !fs.existsSync(WA_AUTH_DIR)) clearWASession();
+
+    try {
+        const { state, saveCreds } = await useMultiFileAuthState(WA_AUTH_DIR);
+
+        if (waSocket) {
+            try { waSocket.end(); } catch (_) { }
+            waSocket = null;
+        }
+
+        waSocket = makeWASocket({
+            auth: state,
+            printQRInTerminal: false,
+            logger: pino({ level: 'silent' }),
+            browser: ['CRM Brain', 'Safari', '3.0'],
+            connectTimeoutMs: 30000,
+            retryRequestDelayMs: 250
+        });
+
+        waSocket.ev.on('connection.update', async (update) => {
+            const { connection, lastDisconnect, qr } = update;
+
+            if (qr) {
+                currentQR = await QRCode.toDataURL(qr);
+                connectionStatus = 'qr';
+                console.log('[WhatsApp] ✅ QR generado. Listo para escanear.');
+            }
+
+            if (connection === 'close') {
+                const code = lastDisconnect?.error?.output?.statusCode;
+                const isLoggedOut = code === DisconnectReason.loggedOut;
+                console.log('[WhatsApp] Conexión cerrada. Código:', code);
+                connectionStatus = 'disconnected';
+                currentQR = null;
+                if (isLoggedOut) {
+                    clearWASession();
+                    setTimeout(() => connectToWhatsApp(true), 2000);
+                } else {
+                    setTimeout(() => connectToWhatsApp(false), 3000);
+                }
+            } else if (connection === 'open') {
+                console.log('[WhatsApp] ✅ Conectado exitosamente!');
+                connectionStatus = 'connected';
+                currentQR = null;
+            }
+        });
+
+        waSocket.ev.on('creds.update', saveCreds);
+
+        waSocket.ev.on('messages.upsert', async m => {
+            // Lógica de respuesta automática real
+        });
+    } catch (err) {
+        console.error('[WhatsApp] Error al conectar:', err.message);
+        connectionStatus = 'disconnected';
+        setTimeout(() => connectToWhatsApp(true), 5000);
+    }
+}
+
+// Inicializar con sesión limpia en cada arranque del servidor
+clearWASession();
+connectToWhatsApp(true);
+
 
 // Configuración de Multer para recibir audios temporales
 const upload = multer({ dest: 'uploads/' });
@@ -244,6 +278,16 @@ app.get('/api/whatsapp/qr', auth, (req, res) => {
         status: connectionStatus,
         qr: currentQR
     });
+});
+
+// Resetear sesión de WhatsApp y forzar nuevo QR
+app.post('/api/whatsapp/reset', auth, async (req, res) => {
+    console.log('[WhatsApp] Reset solicitado. Generando nuevo QR...');
+    connectionStatus = 'disconnected';
+    currentQR = null;
+    clearWASession();
+    setTimeout(() => connectToWhatsApp(true), 500);
+    res.json({ success: true, message: 'Sesión reseteada. Nuevo QR generándose...' });
 });
 
 /**
