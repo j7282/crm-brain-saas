@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
+
+const BACKEND_URL = 'https://crm-brain-backend.onrender.com';
 import {
   BrainCircuit,
   MessageSquareText,
@@ -17,6 +19,55 @@ function App() {
   const [onboardingStep, setOnboardingStep] = useState(1);
   const [brainName, setBrainName] = useState('');
   const [activeTab, setActiveTab] = useState('inbox'); // 'inbox' or 'lab'
+
+  // Simulación de Chat
+  const [messages, setMessages] = useState([
+    { role: 'ai', text: 'Hola Carlos. Entiendo completamente tu preocupación. Una disculpa por la demora, estábamos verificando el reflejo del pago en el sistema bancario.' }
+  ]);
+  const [inputText, setInputText] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [currentSentiment, setCurrentSentiment] = useState('red');
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSendMessage = async () => {
+    if (!inputText.trim() || isTyping) return;
+
+    const userMsg = { role: 'client', text: inputText };
+    setMessages(prev => [...prev, userMsg]);
+    setInputText('');
+    setIsTyping(true);
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/cerebro`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mensajeCliente: inputText,
+          historial: messages.slice(-5)
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.respuestaTexto) {
+        setMessages(prev => [...prev, { role: 'ai', text: data.respuestaTexto }]);
+        if (data.sentiment) setCurrentSentiment(data.sentiment);
+      }
+    } catch (error) {
+      console.error("Error en simulación:", error);
+      setMessages(prev => [...prev, { role: 'ai', text: "Lo siento, mi conexión cerebral ha fallado momentáneamente." }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
 
   const renderOnboarding = () => {
     return (
@@ -304,6 +355,19 @@ function App() {
                     <span>✨</span> Generado automáticamente - Estrategia Emocional: "Validación y Rapidez"
                   </div>
                 </div>
+
+                {messages.map((msg, idx) => (
+                  <div key={idx} className={`message ${msg.role}`}>
+                    {msg.text}
+                  </div>
+                ))}
+
+                {isTyping && (
+                  <div className="message ai" style={{ opacity: 0.7, fontStyle: 'italic' }}>
+                    Escribiendo...
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
               </div>
 
               <div className="input-area">
@@ -314,8 +378,18 @@ function App() {
                     <span style={{ fontSize: '6px' }}>✨</span>
                   </div>
                 </div>
-                <input type="text" className="chat-input" placeholder="Escribe un mensaje para intervenir manualmente..." />
-                <div className="action-btn send">➤</div>
+                <input
+                  type="text"
+                  className="chat-input"
+                  placeholder="Escribe un mensaje para probar la IA..."
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                  disabled={isTyping}
+                />
+                <div className="action-btn send" onClick={handleSendMessage} style={{ cursor: isTyping ? 'not-allowed' : 'pointer' }}>
+                  {isTyping ? '...' : '➤'}
+                </div>
               </div>
             </div>
           </div>
