@@ -16,7 +16,7 @@ app.use(cors());
 app.use(express.json());
 
 // Inicialización de Clientes API
-const geminiApi = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const geminiApi = new GoogleGenerativeAI(process.env.GEMINI_API_KEY, { apiVersion: 'v1' });
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID;
