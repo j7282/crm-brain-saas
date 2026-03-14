@@ -130,8 +130,11 @@ app.post('/api/cerebro', async (req, res) => {
 
         res.json(brainOutput);
     } catch (error) {
-        console.error("Error en Cerebro Gemini:", error);
-        res.status(500).json({ error: 'Fallo en la red neuronal de generación.' });
+        console.error("Error en Cerebro Gemini:", error.response?.data || error.message);
+        res.status(500).json({
+            error: 'Fallo en la red neuronal de generación.',
+            details: error.response?.data || error.message
+        });
     }
 });
 
