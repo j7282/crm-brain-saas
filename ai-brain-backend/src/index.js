@@ -70,6 +70,7 @@ let waSocket = null;
 let currentQR = null;
 let connectionStatus = 'disconnected';
 let isConnecting = false;
+let lastError = null;
 const WA_AUTH_DIR = path.join(process.cwd(), 'wa_auth'); // Usar CWD para evitar problemas de __dirname en Render
 
 // Limpiar sesión caducada y forzar nuevo QR en cada inicio
@@ -90,14 +91,13 @@ function clearWASession() {
 
 async function connectToWhatsApp(forceNew = false) {
     if (isConnecting && !forceNew) {
-        console.log('[WhatsApp] ⏳ Ya hay un intento de conexión en curso. Ignorando...');
+        console.log('[WhatsApp] ⏳ Intento en curso, ignorando duplicado.');
         return;
     }
 
-    console.log(`[WhatsApp] 🔄 Iniciando intento de conexión (forceNew: ${forceNew})...`);
+    console.log(`[WhatsApp] 🔄 Iniciando conexión (forceNew: ${forceNew})...`);
     isConnecting = true;
     connectionStatus = 'connecting';
-    currentQR = null;
 
     if (forceNew || !fs.existsSync(WA_AUTH_DIR)) clearWASession();
 
@@ -105,7 +105,7 @@ async function connectToWhatsApp(forceNew = false) {
         const { state, saveCreds } = await useMultiFileAuthState(WA_AUTH_DIR);
 
         if (waSocket) {
-            console.log('[WhatsApp] Limpiando socket previo antes de reconectar...');
+            console.log('[WhatsApp] Limpiando socket previo...');
             try {
                 waSocket.ev.removeAllListeners();
                 waSocket.end();
@@ -117,10 +117,10 @@ async function connectToWhatsApp(forceNew = false) {
             auth: state,
             printQRInTerminal: true,
             logger: pino({ level: 'info' }),
-            browser: ['Ubuntu', 'Chrome', '110.0.5563.147'],
+            browser: ['Mac OS', 'Chrome', '101.0.4951.54'], // Signature altamente compatible
             connectTimeoutMs: 60000,
-            defaultQueryTimeoutMs: 60000,
-            keepAliveIntervalMs: 15000,
+            defaultQueryTimeoutMs: 20000,
+            keepAliveIntervalMs: 30000,
             generateHighQualityLinkPreview: false
         });
 
@@ -138,26 +138,34 @@ async function connectToWhatsApp(forceNew = false) {
             }
 
             if (connection === 'close') {
-                const code = lastDisconnect?.error?.output?.statusCode;
-                const reason = lastDisconnect?.error?.message || 'razón desconocida';
-                console.log(`[WhatsApp] 🛑 Conexión CERRADA. Código: ${code}, Razón: ${reason}`);
+                const code = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.code;
+                const reason = lastDisconnect?.error?.message || 'sin razón';
+                lastError = { code, reason, timestamp: new Date() };
 
-                connectionStatus = 'disconnected';
-                currentQR = null;
+                console.log(`[WhatsApp] 🛑 Cerrado. Code: ${code}, Reason: ${reason}`);
 
+                // No poner status a 'disconnected' si es un error temporal (tipo handshake)
+                // para que el dashboard no parpadee, pero si code es 401/403 hay que resetear.
                 const isLoggedOut = code === DisconnectReason.loggedOut;
+
                 if (isLoggedOut) {
-                    console.log('[WhatsApp] 🚪 Sesión cerrada. Reseteando...');
+                    console.log('[WhatsApp] 🚪 Sesión cerrada. Limpiando...');
+                    connectionStatus = 'disconnected';
+                    currentQR = null;
                     clearWASession();
                     setTimeout(() => connectToWhatsApp(true), 5000);
                 } else {
-                    console.log('[WhatsApp] ♻️ Reintentando en 5s...');
-                    setTimeout(() => connectToWhatsApp(false), 5000);
+                    // Reconexión simple
+                    setTimeout(() => {
+                        isConnecting = false;
+                        connectToWhatsApp(false);
+                    }, 5000);
                 }
             } else if (connection === 'open') {
-                console.log('[WhatsApp] ✅ CONEXIÓN ABIERTA EXITOSAMENTE');
+                console.log('[WhatsApp] ✅ CONEXIÓN ABIERTA');
                 connectionStatus = 'connected';
                 currentQR = null;
+                isConnecting = false;
             }
         });
 
@@ -186,22 +194,21 @@ async function connectToWhatsApp(forceNew = false) {
                     console.log(`[WhatsApp] 🤖 Respuesta para ${from}: ${result.respuestaTexto}`);
                     await waSocket.sendMessage(from, { text: result.respuestaTexto });
                 } catch (error) {
-                    console.error('[WhatsApp] ❌ Error en flujo IA:', error.message);
+                    console.error('[WhatsApp] ❌ Error flujo IA:', error.message);
                 }
             }
         });
     } catch (err) {
-        console.error('[WhatsApp] ❌ ERROR CRITICAL al conectar:', err);
+        console.error('[WhatsApp] ❌ ERROR CRITICAL:', err);
+        lastError = { code: 'CRITICAL', reason: err.message, timestamp: new Date() };
         connectionStatus = 'disconnected';
-        setTimeout(() => connectToWhatsApp(true), 10000);
-    } finally {
         isConnecting = false;
+        setTimeout(() => connectToWhatsApp(true), 10000);
     }
 }
 
-// Inicializar con sesión limpia en cada arranque del servidor
-clearWASession();
-connectToWhatsApp(true);
+// Inicializar con delay para esperar a que Render asiente
+setTimeout(() => connectToWhatsApp(true), 2000);
 
 
 // Configuración de Multer para recibir audios temporales
@@ -239,9 +246,6 @@ app.post('/api/auth/register', async (req, res) => {
         res.status(201).json({ user: { id: user._id, email: user.email }, token });
     } catch (error) {
         console.error("Error en Registro:", error);
-        if (error.errorType === 'uniqueViolated') {
-            return res.status(400).json({ error: 'Ese correo electrónico ya está registrado.' });
-        }
         res.status(400).json({ error: error.message || 'Error al registrar usuario.' });
     }
 });
@@ -286,7 +290,7 @@ app.get('/api/brains', auth, async (req, res) => {
 });
 
 /**
- * SERVICIO DE ENTRENAMIENTO (Human Intervention)
+ * SERVICIO DE ENTRENAMIENTO
  */
 app.post('/api/brains/:id/train', auth, async (req, res) => {
     try {
@@ -303,7 +307,7 @@ app.post('/api/brains/:id/train', auth, async (req, res) => {
 
 
 /**
- * SERVICIO 1: OÍDO (Transcripción de Audio con OpenAI Whisper)
+ * SERVICIO 1: OÍDO (Whisper)
  */
 app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
     try {
@@ -318,9 +322,7 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
             language: 'es'
         });
 
-        // Limpiar archivo temporal
         fs.unlinkSync(filePath);
-
         res.json({ text: transcription.text });
     } catch (error) {
         console.error("Error en Transcripción Whisper:", error);
@@ -338,11 +340,23 @@ app.get('/api/whatsapp/qr', auth, (req, res) => {
     });
 });
 
+app.get('/api/whatsapp/debug', auth, (req, res) => {
+    res.json({
+        status: connectionStatus,
+        isConnecting,
+        lastError,
+        authDirExists: fs.existsSync(WA_AUTH_DIR),
+        authFiles: fs.existsSync(WA_AUTH_DIR) ? fs.readdirSync(WA_AUTH_DIR) : [],
+        time: new Date()
+    });
+});
+
 // Resetear sesión de WhatsApp y forzar nuevo QR
 app.post('/api/whatsapp/reset', auth, async (req, res) => {
-    console.log('[WhatsApp] Reset solicitado. Generando nuevo QR...');
+    console.log('[WhatsApp] Reset solicitado.');
     connectionStatus = 'disconnected';
     currentQR = null;
+    isConnecting = false;
     clearWASession();
     setTimeout(() => connectToWhatsApp(true), 1000);
     res.json({ success: true, message: 'Sesión reseteada. Nuevo QR generándose...' });
@@ -358,7 +372,7 @@ async function generateAIResponse({ brain, mensajeCliente, historial = [], ultim
 
     let extraExamples = "";
     if (brain?.trainingData && brain.trainingData.length > 0) {
-        extraExamples = "\nEJEMPLOS DE CORRECCIONES PREVIAS (Aprende de esto):\n" +
+        extraExamples = "\nEJEMPLOS DE CORRECCIONES PREVIAS:\n" +
             brain.trainingData.slice(-5).map(t => `Cliente: "${t.query}"\nIA propuso: "${t.aiResponse}"\nHumano corrigió a: "${t.correction}"`).join("\n---\n");
     }
 
@@ -385,11 +399,11 @@ async function generateAIResponse({ brain, mensajeCliente, historial = [], ultim
       
       Mensaje actual del cliente: "${mensajeCliente}"
       
-      Devuelve un JSON exacto con la siguiente estructura:
+      Devuelve un JSON exacto:
       {
          "sentiment": "rojo|amarillo|verde",
-         "reasoning": "Breve explicación",
-         "respuestaTexto": "Respuesta final",
+         "reasoning": "...",
+         "respuestaTexto": "...",
          "requiereMultimedia": "ninguno|video_demostrativo|pdf_ficha_tecnica|pdf_contrato|datos_bancarios"
       }
     `;
@@ -405,7 +419,7 @@ async function generateAIResponse({ brain, mensajeCliente, historial = [], ultim
 }
 
 /**
- * SERVICIO 2: CEREBRO (Generación de Respuesta y Sentimientos con Gemini)
+ * SERVICIO 2: CEREBRO (Gemini)
  */
 app.post('/api/cerebro', auth, async (req, res) => {
     try {
@@ -416,9 +430,7 @@ app.post('/api/cerebro', auth, async (req, res) => {
             ultimoItemEnviadoPorHumano = null
         } = req.body;
 
-        if (!mensajeCliente) {
-            return res.status(400).json({ error: 'No se proporcionó mensaje del cliente.' });
-        }
+        if (!mensajeCliente) return res.status(400).json({ error: 'No se envió mensaje.' });
 
         let brain = null;
         if (brainId) {
@@ -428,49 +440,31 @@ app.post('/api/cerebro', auth, async (req, res) => {
         const brainOutput = await generateAIResponse({ brain, mensajeCliente, historial, ultimoItemEnviadoPorHumano });
         res.json(brainOutput);
     } catch (error) {
-        console.error("Error en Cerebro Gemini:", error.message);
+        console.error("Error Cerebro Gemini:", error.message);
         res.status(500).json({ error: 'Fallo en la generación.' });
     }
 });
 
 /**
- * SERVICIO 3: VOZ (Sintetizador Clonado con ElevenLabs)
+ * SERVICIO 3: VOZ (ElevenLabs)
  */
 app.post('/api/voice', async (req, res) => {
     try {
         const { texto } = req.body;
-
-        if (!texto) {
-            return res.status(400).json({ error: 'No se proporcionó texto para sintetizar.' });
-        }
+        if (!texto) return res.status(400).json({ error: 'No se envió texto.' });
 
         const voiceUrl = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}/stream`;
-
         const response = await axios.post(
             voiceUrl,
-            {
-                text: texto,
-                model_id: 'eleven_multilingual_v2',
-                voice_settings: {
-                    stability: 0.5,
-                    similarity_boost: 0.8
-                }
-            },
-            {
-                headers: {
-                    'Accept': 'audio/mpeg',
-                    'xi-api-key': ELEVENLABS_API_KEY,
-                    'Content-Type': 'application/json'
-                },
-                responseType: 'arraybuffer'
-            }
+            { text: texto, model_id: 'eleven_multilingual_v2', voice_settings: { stability: 0.5, similarity_boost: 0.8 } },
+            { headers: { 'Accept': 'audio/mpeg', 'xi-api-key': ELEVENLABS_API_KEY, 'Content-Type': 'application/json' }, responseType: 'arraybuffer' }
         );
 
         res.setHeader('Content-Type', 'audio/mpeg');
         res.send(response.data);
     } catch (error) {
-        console.error("Error en Clonación de Voz ElevenLabs:", error.message);
-        res.status(500).json({ error: 'Fallo al generar el audio sintético.' });
+        console.error("Error Voz ElevenLabs:", error.message);
+        res.status(500).json({ error: 'Fallo al generar audio.' });
     }
 });
 
@@ -484,70 +478,50 @@ const CRM_MEMORY = {
     ],
     shortcuts: {
         '/precio_pipa': 'El costo de la pipa de 10 mil litros es de $1,200 pesos, te la mando en 2 horas. ¿A qué dirección?',
-        '/cuenta': 'Te dejo la cuenta: BBVA 0123... A nombre de Comercializadora. Mándame tu ticket porfa.'
+        '/cuenta': 'Te dejo la cuenta: BBVA 0123... A nombre de Comercializadora.'
     },
-    sesiones: {} // Guarda el "ultimoItemEnviadoPorHumano" por número de teléfono
+    sesiones: {}
 };
 
 /**
- * FLUJO MAESTRO: Webhook para recibir mensajes de WhatsApp (Evolution API / Meta)
+ * Webhook Evolution API
  */
 app.post('/webhook/whatsapp', async (req, res) => {
     try {
         const { messageType, content, from, isFromMe } = req.body;
 
-        // 1. SISTEMA DE INTELIGENCIA DE SEGUIMIENTO DE ÍTEMS (Si el vendedor envía un catálogo)
         if (isFromMe && messageType === 'catalog_message') {
-            console.log(`[CRM] Vendedor humano envió un producto del catálogo a ${from}`);
             CRM_MEMORY.sesiones[from] = { ultimoItemEnviadoPorHumano: content.productId };
-            return res.json({ success: true, status: 'Contexto actualizado.' });
+            return res.json({ success: true });
         }
 
-        // Ignorar si soy yo (IA) o si es otro tipo de mi propio mensaje
-        if (isFromMe) return res.json({ success: true, status: 'Ignorado (es mío)' });
+        if (isFromMe) return res.json({ success: true });
 
         let mensajeCliente = content;
-        console.log(`[WhatsApp Inbound] Nuevo mensaje de ${from}: Toma de decisión iniciada.`);
+        if (messageType === 'audio') mensajeCliente = "[Audio]: " + mensajeCliente;
 
-        // 2. Si el messageType es 'audio', conectar con Whisper para transcribir (Lógica simulada aquí)
-        if (messageType === 'audio') {
-            mensajeCliente = "[AudioTranscrito]: " + mensajeCliente; // Simulando transcripción
-        }
-
-        // 3. Evaluar con el Cerebro (Gemini) inyectando los Activos del CRM
         const brainResponse = await axios.post(`http://localhost:${port}/api/cerebro`, {
-            mensajeCliente: mensajeCliente,
+            mensajeCliente,
             historial: [],
-            catalogoProductos: CRM_MEMORY.catalogo,
-            respuestasRapidas: CRM_MEMORY.shortcuts,
             ultimoItemEnviadoPorHumano: CRM_MEMORY.sesiones[from]?.ultimoItemEnviadoPorHumano || null
         });
 
         const decision = brainResponse.data;
-        console.log(`[Decisión Cerebro]: Sentimiento: ${decision.sentiment} | Acción Multimedia: ${decision.requiereMultimedia}`);
-
-        // 4. GESTIÓN DE ARCHIVOS Y MULTIMEDIA
         let payloadEnvio = { to: from, text: decision.respuestaTexto };
 
         if (decision.requiereMultimedia && decision.requiereMultimedia !== 'ninguno') {
-            console.log(`[CRM] Extrayendo activo multimedia: ${decision.requiereMultimedia} desde la Galería.`);
-            // Aquí se conectaría con la API de WhatsApp para enviar el Documento/Video correspondiente
             payloadEnvio.media = `url_del_crm_asset/${decision.requiereMultimedia}`;
         }
 
-        // 5. Retornamos la orden de ejecución a Evolution API / WhatsApp Cloud
         res.json({ success: true, action: payloadEnvio });
     } catch (error) {
-        console.error("Error en Flujo Maestro:", error);
+        console.error("Error Webhook:", error);
         res.status(500).send('Error');
     }
 });
 
 app.listen(port, () => {
-    console.log(`[Cerebro Central] Motor Backend corriendo en puerto ${port}`);
-    console.log(`- Oído Whisper: ACTIVO`);
-    console.log(`- Cerebro Gemini: ACTIVO`);
-    console.log(`- Voz ElevenLabs: ACTIVO`);
+    console.log(`[Cerebro Central] Motor Backend en puerto ${port}`);
 });
 
 // Error Handler Global
