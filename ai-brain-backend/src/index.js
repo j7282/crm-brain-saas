@@ -110,6 +110,15 @@ app.post('/api/cerebro', async (req, res) => {
       }
     `;
 
+        console.log("[Gemini] Diagnostic: Listando modelos disponibles...");
+        try {
+            const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`;
+            const listRes = await axios.get(listUrl);
+            console.log("[Gemini] Modelos disponibles:", listRes.data.models.map(m => m.name).join(", "));
+        } catch (listErr) {
+            console.error("[Gemini] Error al listar modelos:", listErr.message);
+        }
+
         console.log("[Gemini] API Key detectada:", process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.substring(0, 5) + "..." : "No detectada");
         console.log("[Gemini] Generando respuesta (v1beta REST API) para:", mensajeCliente);
 
