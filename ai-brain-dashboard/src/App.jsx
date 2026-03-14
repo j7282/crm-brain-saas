@@ -311,14 +311,21 @@ function App() {
                 </p>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                 <button className="secondary-btn" onClick={() => setOnboardingStep(1)}>
                   ← Volver
                 </button>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
-                  Detectando escaneo automáticamente...
-                </div>
+                <button
+                  className="primary-btn"
+                  onClick={() => setOnboardingStep(3)}
+                  style={{ background: 'linear-gradient(135deg, #4CAF50, #2E7D32)', fontSize: '0.85rem' }}
+                >
+                  Saltar por ahora →
+                </button>
               </div>
+              <p style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.75rem', marginTop: '12px', fontStyle: 'italic' }}>
+                Puedes vincular WhatsApp más tarde desde Configuración
+              </p>
             </div>
           )}
 
