@@ -6,18 +6,36 @@ const OpenAI = require('openai');
 const axios = require('axios');
 const multer = require('multer');
 const fs = require('fs');
+const path = require('path');
 const FormData = require('form-data');
-const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
 const QRCode = require('qrcode');
 const pino = require('pino');
+const Datastore = require('@seald-io/nedb');
 
-// Modelos
-const User = require('./models/User');
-const Brain = require('./models/Brain');
+// =============================================
+// BASE DE DATOS LOCAL (NeDB - Sin configuración)
+// Los datos se guardan en archivos .db en el servidor
+// =============================================
+const dbDir = path.join(__dirname, '../data');
+if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
+const usersDb = new Datastore({ filename: path.join(dbDir, 'users.db'), autoload: true });
+const brainsDb = new Datastore({ filename: path.join(dbDir, 'brains.db'), autoload: true });
+
+// Índice único en email para evitar duplicados
+usersDb.ensureIndex({ fieldName: 'email', unique: true }, err => {
+    if (err) console.error('[DB] Error creando índice:', err);
+    else console.log('[DB] ✅ Base de datos local iniciada correctamente');
+});
+
+// Helpers para promisificar NeDB
+const dbFind = (db, query) => new Promise((res, rej) => db.find(query, (e, d) => e ? rej(e) : res(d)));
+const dbFindOne = (db, query) => new Promise((res, rej) => db.findOne(query, (e, d) => e ? rej(e) : res(d)));
+const dbInsert = (db, doc) => new Promise((res, rej) => db.insert(doc, (e, d) => e ? rej(e) : res(d)));
+const dbUpdate = (db, q, u, opt) => new Promise((res, rej) => db.update(q, u, opt || {}, (e, n) => e ? rej(e) : res(n)));
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -25,13 +43,6 @@ const port = process.env.PORT || 3000;
 // Configuración de middlewares
 app.use(cors());
 app.use(express.json());
-
-// Conexión a MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/brain-clone-saas', {
-    serverSelectionTimeoutMS: 5000 // Error rápido si no hay DB
-})
-    .then(() => console.log('[DB] Conectado a MongoDB'))
-    .catch(err => console.error('[DB] Error de conexión:', err));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret_para_cerebros_clonados';
 
@@ -108,7 +119,7 @@ const upload = multer({ dest: 'uploads/' });
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'online',
-        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        database: 'connected (local NeDB)',
         services: {
             cerebro: !!process.env.GEMINI_API_KEY,
             oido: !!process.env.OPENAI_API_KEY,
@@ -123,28 +134,35 @@ app.get('/api/health', (req, res) => {
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const user = new User({ email, password });
-        await user.save();
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email y contraseña son requeridos.' });
+        }
+        const existing = await dbFindOne(usersDb, { email });
+        if (existing) {
+            return res.status(400).json({ error: 'Ese correo electrónico ya está registrado.' });
+        }
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = await dbInsert(usersDb, { email, password: hashedPassword, createdAt: new Date() });
         const token = jwt.sign({ userId: user._id }, JWT_SECRET);
         res.status(201).json({ user: { id: user._id, email: user.email }, token });
     } catch (error) {
         console.error("Error en Registro:", error);
-        if (error.code === 11000) {
+        if (error.errorType === 'uniqueViolated') {
             return res.status(400).json({ error: 'Ese correo electrónico ya está registrado.' });
         }
-
-        const dbStatus = mongoose.connection.readyState === 1 ? 'conectada' : 'DESCONECTADA';
-        const msg = `Fallo en el servidor: ${error.message || 'Error desconocido'}. Estado DB: ${dbStatus}`;
-
-        res.status(400).json({ error: msg });
+        res.status(400).json({ error: error.message || 'Error al registrar usuario.' });
     }
 });
 
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const user = await User.findOne({ email });
-        if (!user || !(await user.comparePassword(password))) {
+        const user = await dbFindOne(usersDb, { email });
+        if (!user) {
+            return res.status(401).json({ error: 'Credenciales inválidas.' });
+        }
+        const valid = await bcrypt.compare(password, user.password);
+        if (!valid) {
             return res.status(401).json({ error: 'Credenciales inválidas.' });
         }
         const token = jwt.sign({ userId: user._id }, JWT_SECRET);
@@ -159,8 +177,7 @@ app.post('/api/auth/login', async (req, res) => {
  */
 app.post('/api/brains', auth, async (req, res) => {
     try {
-        const brain = new Brain({ ...req.body, userId: req.user.userId });
-        await brain.save();
+        const brain = await dbInsert(brainsDb, { ...req.body, userId: req.user.userId, createdAt: new Date() });
         res.status(201).json(brain);
     } catch (error) {
         res.status(400).json({ error: 'Error al crear cerebro.' });
@@ -169,7 +186,7 @@ app.post('/api/brains', auth, async (req, res) => {
 
 app.get('/api/brains', auth, async (req, res) => {
     try {
-        const brains = await Brain.find({ userId: req.user.userId });
+        const brains = await dbFind(brainsDb, { userId: req.user.userId });
         res.json(brains);
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener cerebros.' });
@@ -182,11 +199,10 @@ app.get('/api/brains', auth, async (req, res) => {
 app.post('/api/brains/:id/train', auth, async (req, res) => {
     try {
         const { query, aiResponse, correction } = req.body;
-        const brain = await Brain.findOne({ _id: req.params.id, userId: req.user.userId });
+        const brain = await dbFindOne(brainsDb, { _id: req.params.id, userId: req.user.userId });
         if (!brain) return res.status(404).json({ error: 'Cerebro no encontrado.' });
-
-        brain.trainingData.push({ query, aiResponse, correction });
-        await brain.save();
+        const newTraining = [...(brain.trainingData || []), { query, aiResponse, correction }];
+        await dbUpdate(brainsDb, { _id: req.params.id }, { $set: { trainingData: newTraining } });
         res.json({ success: true, message: 'Entrenamiento guardado correctamente.' });
     } catch (error) {
         res.status(500).json({ error: 'Error al entrenar el cerebro.' });
