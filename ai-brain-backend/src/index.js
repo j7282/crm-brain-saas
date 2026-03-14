@@ -126,6 +126,9 @@ app.post('/api/auth/register', async (req, res) => {
         res.status(201).json({ user: { id: user._id, email: user.email }, token });
     } catch (error) {
         console.error("Error en Registro:", error);
+        if (error.code === 11000) {
+            return res.status(400).json({ error: 'Ese correo electrónico ya está registrado.' });
+        }
         res.status(400).json({ error: 'Error al registrar usuario.' });
     }
 });

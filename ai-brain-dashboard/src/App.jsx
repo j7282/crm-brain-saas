@@ -123,13 +123,13 @@ function App() {
           </p>
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Email Corporativo</label>
+            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Correo Electrónico</label>
             <input
               type="email"
               className="input-field"
               value={authEmail}
               onChange={e => setAuthEmail(e.target.value)}
-              placeholder="vendedor@empresa.com"
+              placeholder="tu@email.com"
             />
           </div>
 
