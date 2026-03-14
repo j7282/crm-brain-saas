@@ -59,14 +59,12 @@ const auth = async (req, res, next) => {
     }
 };
 
-
 // Inicialización de Clientes API
 const geminiApi = new GoogleGenerativeAI(process.env.GEMINI_API_KEY, { apiVersion: 'v1' });
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID;
 
-// Gestión de WhatsApp (Real QR)
 // Gestión de WhatsApp (Real QR)
 let waSocket = null;
 let currentQR = null;
@@ -90,26 +88,30 @@ function clearWASession() {
 }
 
 async function connectToWhatsApp(forceNew = false) {
-    console.log(`[WhatsApp] Intentando conectar (forceNew: ${forceNew})...`);
+    console.log(`[WhatsApp] 🔄 Intentando conexión (forceNew: ${forceNew})...`);
+    connectionStatus = 'connecting';
+    currentQR = null;
+
     if (forceNew || !fs.existsSync(WA_AUTH_DIR)) clearWASession();
 
     try {
         const { state, saveCreds } = await useMultiFileAuthState(WA_AUTH_DIR);
 
         if (waSocket) {
-            console.log('[WhatsApp] Cerrando socket anterior...');
+            console.log('[WhatsApp] Limpiando socket previo...');
             try { waSocket.end(); } catch (_) { }
             waSocket = null;
         }
 
         waSocket = makeWASocket({
             auth: state,
-            printQRInTerminal: true, // Útil para logs de Render
-            logger: pino({ level: 'info' }), // Subir nivel de log para debug
-            browser: ['CRM Brain', 'Chrome', '110.0.0'],
+            printQRInTerminal: true,
+            logger: pino({ level: 'info' }),
+            browser: ['CRM Brain', 'Chrome', '114.0.5735.198'],
             connectTimeoutMs: 60000,
             defaultQueryTimeoutMs: 60000,
-            keepAliveIntervalMs: 10000
+            keepAliveIntervalMs: 15000,
+            generateHighQualityLinkPreview: false
         });
 
         waSocket.ev.on('connection.update', async (update) => {
@@ -119,40 +121,37 @@ async function connectToWhatsApp(forceNew = false) {
                 try {
                     currentQR = await QRCode.toDataURL(qr);
                     connectionStatus = 'qr';
-                    console.log('[WhatsApp] ✅ QR NUEVO GENERADO exitosamente.');
+                    console.log('[WhatsApp] ✨ NUEVO QR GENERADO ✨');
                 } catch (qrErr) {
-                    console.error('[WhatsApp] Error al convertir QR a DataURL:', qrErr.message);
+                    console.error('[WhatsApp] ❌ Error convirtiendo QR:', qrErr.message);
                 }
             }
 
             if (connection === 'close') {
                 const code = lastDisconnect?.error?.output?.statusCode;
-                const reason = lastDisconnect?.error?.message || 'Sin razón';
-                console.log(`[WhatsApp] Conexión CERRADA. Código: ${code}, Razón: ${reason}`);
+                const reason = lastDisconnect?.error?.message || 'razón desconocida';
+                console.log(`[WhatsApp] 🛑 Conexión CERRADA. Código: ${code}, Razón: ${reason}`);
 
                 connectionStatus = 'disconnected';
                 currentQR = null;
 
                 const isLoggedOut = code === DisconnectReason.loggedOut;
                 if (isLoggedOut) {
-                    console.log('[WhatsApp] Sesión cerrada formalmente. Limpiando...');
+                    console.log('[WhatsApp] 🚪 Sesión cerrada. Reseteando...');
                     clearWASession();
                     setTimeout(() => connectToWhatsApp(true), 5000);
                 } else {
-                    console.log('[WhatsApp] Intentando reconexión simple...');
+                    console.log('[WhatsApp] ♻️ Reintentando en 5s...');
                     setTimeout(() => connectToWhatsApp(false), 5000);
                 }
             } else if (connection === 'open') {
-                console.log('[WhatsApp] 🚀 ¡CONECTADO EXITOSAMENTE A WHATSAPP!');
+                console.log('[WhatsApp] ✅ CONEXIÓN ABIERTA EXITOSAMENTE');
                 connectionStatus = 'connected';
                 currentQR = null;
             }
         });
 
-        waSocket.ev.on('creds.update', async () => {
-            console.log('[WhatsApp] Credenciales actualizadas, guardando...');
-            await saveCreds();
-        });
+        waSocket.ev.on('creds.update', saveCreds);
 
         waSocket.ev.on('messages.upsert', async m => {
             const msg = m.messages[0];
@@ -162,32 +161,29 @@ async function connectToWhatsApp(forceNew = false) {
             const text = msg.message.conversation || msg.message.extendedTextMessage?.text;
 
             if (text) {
-                console.log(`[WhatsApp] Mensaje recibido de ${from}: ${text}`);
+                console.log(`[WhatsApp] 📩 Mensaje de ${from}: ${text}`);
 
                 try {
-                    // Obtener el primer cerebro disponible para este "usuario" (simplificado para MVP)
                     const brains = await dbFind(brainsDb, {});
                     const activeBrain = brains[0] || { nombre: 'Cerebro Genérico', catalogo: [], shortcuts: {} };
 
                     const result = await generateAIResponse({
                         brain: activeBrain,
                         mensajeCliente: text,
-                        historial: [] // TODO: Implementar persistencia de historial por chat
+                        historial: []
                     });
 
-                    console.log(`[WhatsApp] IA sugirió para ${from}: ${result.respuestaTexto}`);
-
-                    // Enviar respuesta automáticamente (Modo Piloto por defecto por ahora)
+                    console.log(`[WhatsApp] 🤖 Respuesta para ${from}: ${result.respuestaTexto}`);
                     await waSocket.sendMessage(from, { text: result.respuestaTexto });
                 } catch (error) {
-                    console.error('[WhatsApp] Error procesando respuesta IA:', error.message);
+                    console.error('[WhatsApp] ❌ Error en flujo IA:', error.message);
                 }
             }
         });
     } catch (err) {
-        console.error('[WhatsApp] Error al conectar:', err.message);
+        console.error('[WhatsApp] ❌ ERROR CRÍTICO al conectar:', err);
         connectionStatus = 'disconnected';
-        setTimeout(() => connectToWhatsApp(true), 5000);
+        setTimeout(() => connectToWhatsApp(true), 10000);
     }
 }
 
@@ -336,7 +332,7 @@ app.post('/api/whatsapp/reset', auth, async (req, res) => {
     connectionStatus = 'disconnected';
     currentQR = null;
     clearWASession();
-    setTimeout(() => connectToWhatsApp(true), 500);
+    setTimeout(() => connectToWhatsApp(true), 1000);
     res.json({ success: true, message: 'Sesión reseteada. Nuevo QR generándose...' });
 });
 
