@@ -54,13 +54,15 @@ function App() {
   useEffect(() => {
     let interval;
     let pollCount = 0;
-    const MAX_POLLS_BEFORE_RESET = 10; // 20 segundos sin QR = reintentar
+    const MAX_POLLS_BEFORE_RESET = 30; // 60 segundos sin QR = reintentar (Render es lento)
     if (isOnboarding && onboardingStep === 2 && token) {
       interval = setInterval(async () => {
         try {
           const res = await fetch(`${BACKEND_URL}/api/whatsapp/qr`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
+          if (!res.ok) throw new Error('Backend unreachabe');
+
           const data = await res.json();
           setWaQR(data.qr);
           setWaStatus(data.status);
@@ -68,18 +70,20 @@ function App() {
           if (data.status === 'connected') {
             clearInterval(interval);
             setTimeout(() => setOnboardingStep(3), 1500);
+            return;
           }
 
-          // Si no hay QR despues de MAX_POLLS, forzar reset
-          if (!data.qr && data.status !== 'connected') {
+          // Si no hay QR Y no está conectando, contar para el reset
+          // Si está en 'connecting', darle tiempo extra
+          if (!data.qr && data.status !== 'connected' && data.status !== 'connecting') {
             pollCount++;
             if (pollCount >= MAX_POLLS_BEFORE_RESET) {
+              console.log('[WhatsApp] Auto-reset triggered after timeout');
               pollCount = 0;
               await fetch(`${BACKEND_URL}/api/whatsapp/reset`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
               });
-              console.log('[WhatsApp] Auto-reset triggered after timeout');
             }
           } else {
             pollCount = 0;
