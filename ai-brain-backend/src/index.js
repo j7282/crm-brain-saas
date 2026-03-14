@@ -164,9 +164,9 @@ async function connectToWhatsApp(forceNew = false) {
                     connectionStatus = 'disconnected';
                     currentQR = null;
                     clearWASession();
-                    setTimeout(() => connectToWhatsApp(true), 5000);
+                    setTimeout(() => connectToWhatsApp(true), 5000); // Forzar nuevo QR si se cerró sesión
                 } else {
-                    // Reconexión simple
+                    // Reconexión simple manteniendo la sesión
                     setTimeout(() => {
                         isConnecting = false;
                         connectToWhatsApp(false);
@@ -214,12 +214,12 @@ async function connectToWhatsApp(forceNew = false) {
         lastError = { code: 'CRITICAL', reason: err.message, timestamp: new Date() };
         connectionStatus = 'disconnected';
         isConnecting = false;
-        setTimeout(() => connectToWhatsApp(true), 10000);
+        setTimeout(() => connectToWhatsApp(false), 10000); // Reintentar sin borrar sesión por defecto
     }
 }
 
-// Inicializar con delay para esperar a que Render asiente
-setTimeout(() => connectToWhatsApp(true), 2000);
+// Inicializar intentando recuperar sesión existente
+setTimeout(() => connectToWhatsApp(false), 2000);
 
 
 // Configuración de Multer para recibir audios temporales
