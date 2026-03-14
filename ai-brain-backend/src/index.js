@@ -67,69 +67,92 @@ const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID;
 
 // Gestión de WhatsApp (Real QR)
+// Gestión de WhatsApp (Real QR)
 let waSocket = null;
 let currentQR = null;
 let connectionStatus = 'disconnected';
-const WA_AUTH_DIR = path.join(__dirname, '../wa_auth');
+const WA_AUTH_DIR = path.join(process.cwd(), 'wa_auth'); // Usar CWD para evitar problemas de __dirname en Render
 
 // Limpiar sesión caducada y forzar nuevo QR en cada inicio
 function clearWASession() {
-    if (fs.existsSync(WA_AUTH_DIR)) {
-        fs.rmSync(WA_AUTH_DIR, { recursive: true, force: true });
+    try {
+        if (fs.existsSync(WA_AUTH_DIR)) {
+            fs.rmSync(WA_AUTH_DIR, { recursive: true, force: true });
+            console.log('[WhatsApp] Directorio de sesión eliminado.');
+        }
+        fs.mkdirSync(WA_AUTH_DIR, { recursive: true });
+        console.log('[WhatsApp] Directorio de sesión creado: ' + WA_AUTH_DIR);
+    } catch (e) {
+        console.error('[WhatsApp] Error al limpiar sesión:', e.message);
     }
-    fs.mkdirSync(WA_AUTH_DIR, { recursive: true });
-    console.log('[WhatsApp] Sesión limpia → esperando QR nuevo');
+    connectionStatus = 'connecting';
+    currentQR = null;
 }
 
 async function connectToWhatsApp(forceNew = false) {
+    console.log(`[WhatsApp] Intentando conectar (forceNew: ${forceNew})...`);
     if (forceNew || !fs.existsSync(WA_AUTH_DIR)) clearWASession();
 
     try {
         const { state, saveCreds } = await useMultiFileAuthState(WA_AUTH_DIR);
 
         if (waSocket) {
+            console.log('[WhatsApp] Cerrando socket anterior...');
             try { waSocket.end(); } catch (_) { }
             waSocket = null;
         }
 
         waSocket = makeWASocket({
             auth: state,
-            printQRInTerminal: false,
-            logger: pino({ level: 'silent' }),
-            browser: ['CRM Brain', 'Safari', '3.0'],
-            connectTimeoutMs: 30000,
-            retryRequestDelayMs: 250
+            printQRInTerminal: true, // Útil para logs de Render
+            logger: pino({ level: 'info' }), // Subir nivel de log para debug
+            browser: ['CRM Brain', 'Chrome', '110.0.0'],
+            connectTimeoutMs: 60000,
+            defaultQueryTimeoutMs: 60000,
+            keepAliveIntervalMs: 10000
         });
 
         waSocket.ev.on('connection.update', async (update) => {
             const { connection, lastDisconnect, qr } = update;
 
             if (qr) {
-                currentQR = await QRCode.toDataURL(qr);
-                connectionStatus = 'qr';
-                console.log('[WhatsApp] ✅ QR generado. Listo para escanear.');
+                try {
+                    currentQR = await QRCode.toDataURL(qr);
+                    connectionStatus = 'qr';
+                    console.log('[WhatsApp] ✅ QR NUEVO GENERADO exitosamente.');
+                } catch (qrErr) {
+                    console.error('[WhatsApp] Error al convertir QR a DataURL:', qrErr.message);
+                }
             }
 
             if (connection === 'close') {
                 const code = lastDisconnect?.error?.output?.statusCode;
-                const isLoggedOut = code === DisconnectReason.loggedOut;
-                console.log('[WhatsApp] Conexión cerrada. Código:', code);
+                const reason = lastDisconnect?.error?.message || 'Sin razón';
+                console.log(`[WhatsApp] Conexión CERRADA. Código: ${code}, Razón: ${reason}`);
+
                 connectionStatus = 'disconnected';
                 currentQR = null;
+
+                const isLoggedOut = code === DisconnectReason.loggedOut;
                 if (isLoggedOut) {
+                    console.log('[WhatsApp] Sesión cerrada formalmente. Limpiando...');
                     clearWASession();
-                    setTimeout(() => connectToWhatsApp(true), 2000);
+                    setTimeout(() => connectToWhatsApp(true), 5000);
                 } else {
-                    setTimeout(() => connectToWhatsApp(false), 3000);
+                    console.log('[WhatsApp] Intentando reconexión simple...');
+                    setTimeout(() => connectToWhatsApp(false), 5000);
                 }
             } else if (connection === 'open') {
-                console.log('[WhatsApp] ✅ Conectado exitosamente!');
+                console.log('[WhatsApp] 🚀 ¡CONECTADO EXITOSAMENTE A WHATSAPP!');
                 connectionStatus = 'connected';
                 currentQR = null;
             }
         });
 
-        waSocket.ev.on('creds.update', saveCreds);
+        waSocket.ev.on('creds.update', async () => {
+            console.log('[WhatsApp] Credenciales actualizadas, guardando...');
+            await saveCreds();
+        });
 
         waSocket.ev.on('messages.upsert', async m => {
             const msg = m.messages[0];
