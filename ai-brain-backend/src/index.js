@@ -132,7 +132,34 @@ async function connectToWhatsApp(forceNew = false) {
         waSocket.ev.on('creds.update', saveCreds);
 
         waSocket.ev.on('messages.upsert', async m => {
-            // Lógica de respuesta automática real
+            const msg = m.messages[0];
+            if (!msg.message || msg.key.fromMe) return;
+
+            const from = msg.key.remoteJid;
+            const text = msg.message.conversation || msg.message.extendedTextMessage?.text;
+
+            if (text) {
+                console.log(`[WhatsApp] Mensaje recibido de ${from}: ${text}`);
+
+                try {
+                    // Obtener el primer cerebro disponible para este "usuario" (simplificado para MVP)
+                    const brains = await dbFind(brainsDb, {});
+                    const activeBrain = brains[0] || { nombre: 'Cerebro Genérico', catalogo: [], shortcuts: {} };
+
+                    const result = await generateAIResponse({
+                        brain: activeBrain,
+                        mensajeCliente: text,
+                        historial: [] // TODO: Implementar persistencia de historial por chat
+                    });
+
+                    console.log(`[WhatsApp] IA sugirió para ${from}: ${result.respuestaTexto}`);
+
+                    // Enviar respuesta automáticamente (Modo Piloto por defecto por ahora)
+                    await waSocket.sendMessage(from, { text: result.respuestaTexto });
+                } catch (error) {
+                    console.error('[WhatsApp] Error procesando respuesta IA:', error.message);
+                }
+            }
         });
     } catch (err) {
         console.error('[WhatsApp] Error al conectar:', err.message);
@@ -291,41 +318,20 @@ app.post('/api/whatsapp/reset', auth, async (req, res) => {
 });
 
 /**
- * SERVICIO 2: CEREBRO (Generación de Respuesta y Sentimientos con Gemini)
+ * Helper: Generador de Respuestas con Gemini
  */
-app.post('/api/cerebro', auth, async (req, res) => {
-    try {
-        const {
-            mensajeCliente,
-            historial = [],
-            brainId,
-            ultimoItemEnviadoPorHumano = null
-        } = req.body;
+async function generateAIResponse({ brain, mensajeCliente, historial = [], ultimoItemEnviadoPorHumano = null }) {
+    const brainName = brain?.nombre || "Cerebro Clon";
+    const catalogoProductos = brain?.catalogoProductos || brain?.catalogo || CRM_MEMORY.catalogo;
+    const respuestasRapidas = brain?.respuestasRapidas || brain?.shortcuts || CRM_MEMORY.shortcuts;
 
-        // Cargar contexto del Cerebro desde la DB
-        let catalogoProductos = [];
-        let respuestasRapidas = {};
-        let brainName = "Cerebro General";
-        let extraExamples = "";
+    let extraExamples = "";
+    if (brain?.trainingData && brain.trainingData.length > 0) {
+        extraExamples = "\nEJEMPLOS DE CORRECCIONES PREVIAS (Aprende de esto):\n" +
+            brain.trainingData.slice(-5).map(t => `Cliente: "${t.query}"\nIA propuso: "${t.aiResponse}"\nHumano corrigió a: "${t.correction}"`).join("\n---\n");
+    }
 
-        if (brainId) {
-            const brain = await Brain.findOne({ _id: brainId, userId: req.user.userId });
-            if (brain) {
-                catalogoProductos = brain.catalogoProductos;
-                respuestasRapidas = brain.respuestasRapidas;
-                brainName = brain.name;
-
-                // Inyectar ejemplos de entrenamiento previo
-                if (brain.trainingData && brain.trainingData.length > 0) {
-                    extraExamples = "\nEJEMPLOS DE CORRECCIONES PREVIAS (Aprende de esto):\n" +
-                        brain.trainingData.slice(-5).map(t => `Cliente: "${t.query}"\nIA propuso: "${t.aiResponse}"\nHumano corrigió a: "${t.correction}"`).join("\n---\n");
-                }
-            }
-        }
-
-        const model = geminiApi.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-        const systemPrompt = `
+    const systemPrompt = `
       Eres una 'Instancia de Cerebro Clonado' llamada "${brainName}".
       Actúas de manera 100% natural, como un humano real. Tu meta es cerrar el 90% de las ventas.
       
@@ -357,15 +363,38 @@ app.post('/api/cerebro', auth, async (req, res) => {
       }
     `;
 
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
-        const response = await axios.post(geminiUrl, {
-            contents: [{ role: 'user', parts: [{ text: systemPrompt }] }]
-        });
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+    const response = await axios.post(geminiUrl, {
+        contents: [{ role: 'user', parts: [{ text: systemPrompt }] }]
+    });
 
-        const textResponse = response.data.candidates[0].content.parts[0].text;
-        const jsonString = textResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-        const brainOutput = JSON.parse(jsonString);
+    const textResponse = response.data.candidates[0].content.parts[0].text;
+    const jsonString = textResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    return JSON.parse(jsonString);
+}
 
+/**
+ * SERVICIO 2: CEREBRO (Generación de Respuesta y Sentimientos con Gemini)
+ */
+app.post('/api/cerebro', auth, async (req, res) => {
+    try {
+        const {
+            mensajeCliente,
+            historial = [],
+            brainId,
+            ultimoItemEnviadoPorHumano = null
+        } = req.body;
+
+        if (!mensajeCliente) {
+            return res.status(400).json({ error: 'No se proporcionó mensaje del cliente.' });
+        }
+
+        let brain = null;
+        if (brainId) {
+            brain = await dbFindOne(brainsDb, { _id: brainId, userId: req.user.userId });
+        }
+
+        const brainOutput = await generateAIResponse({ brain, mensajeCliente, historial, ultimoItemEnviadoPorHumano });
         res.json(brainOutput);
     } catch (error) {
         console.error("Error en Cerebro Gemini:", error.message);
