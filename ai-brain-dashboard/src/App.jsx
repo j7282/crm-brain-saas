@@ -118,6 +118,9 @@ function App() {
         <div className="onboarding-card auth-card" style={{ maxWidth: '400px', margin: 'auto', background: 'var(--bg-secondary)', padding: '40px', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
           <div className="logo-icon grow" style={{ fontSize: '3rem', textAlign: 'center', marginBottom: '24px' }}>🧠</div>
           <h2 style={{ textAlign: 'center', marginBottom: '8px', color: 'var(--text-primary)' }}>{authMode === 'login' ? 'Bienvenido de Nuevo' : 'Crear Cuenta SaaS'}</h2>
+          <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+            <span style={{ fontSize: '0.7rem', border: '1px solid var(--accent)', color: 'var(--accent)', padding: '2px 8px', borderRadius: '10px', opacity: 0.8 }}>v1.5.0-DEPLOY-CHECK</span>
+          </div>
           <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '32px' }}>
             Protege tus cerebros clonados y accede desde cualquier lugar.
           </p>
