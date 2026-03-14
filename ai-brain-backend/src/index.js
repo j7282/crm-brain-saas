@@ -110,17 +110,18 @@ app.post('/api/cerebro', async (req, res) => {
       }
     `;
 
-        console.log("[Gemini] Generando respuesta para:", mensajeCliente);
-        let result;
-        try {
-            result = await model.generateContent(systemPrompt);
-        } catch (flashError) {
-            console.error("[Gemini] Error con Flash, intentando con Pro:", flashError.message);
-            const backupModel = geminiApi.getGenerativeModel({ model: "gemini-pro" });
-            result = await backupModel.generateContent(systemPrompt);
-        }
+        console.log("[Gemini] Generando respuesta (v1 REST API) para:", mensajeCliente);
 
-        const textResponse = result.response.text();
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+
+        const response = await axios.post(geminiUrl, {
+            contents: [{ role: 'user', parts: [{ text: systemPrompt }] }],
+            generationConfig: {
+                // response_mime_type: "application/json" // Note: gemini-1.5-flash supports json mode, but let's keep it simple first
+            }
+        });
+
+        const textResponse = response.data.candidates[0].content.parts[0].text;
         console.log("[Gemini] Respuesta recibida");
 
         // Limpiar JSON si Gemini lo envuelve en markdown
