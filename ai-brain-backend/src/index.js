@@ -7,6 +7,17 @@ const axios = require('axios');
 const multer = require('multer');
 const fs = require('fs');
 const FormData = require('form-data');
+const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const QRCode = require('qrcode');
+const pino = require('pino');
+
+// Modelos
+const User = require('./models/User');
+const Brain = require('./models/Brain');
+
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -15,11 +26,78 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Conexión a MongoDB
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/brain-clone-saas')
+    .then(() => console.log('[DB] Conectado a MongoDB'))
+    .catch(err => console.error('[DB] Error de conexión:', err));
+
+const JWT_SECRET = process.env.JWT_SECRET || 'secret_para_cerebros_clonados';
+
+// Middleware de autenticación
+const auth = async (req, res, next) => {
+    try {
+        const token = req.header('Authorization')?.replace('Bearer ', '');
+        if (!token) throw new Error();
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (e) {
+        res.status(401).json({ error: 'Por favor, autentícate.' });
+    }
+};
+
+
 // Inicialización de Clientes API
 const geminiApi = new GoogleGenerativeAI(process.env.GEMINI_API_KEY, { apiVersion: 'v1' });
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID;
+
+// Gestión de WhatsApp (Real QR)
+let waSocket = null;
+let currentQR = null;
+let connectionStatus = 'disconnected'; // 'disconnected', 'connecting', 'qr', 'connected'
+
+async function connectToWhatsApp() {
+    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
+
+    waSocket = makeWASocket({
+        auth: state,
+        printQRInTerminal: true,
+        logger: pino({ level: 'silent' })
+    });
+
+    waSocket.ev.on('connection.update', async (update) => {
+        const { connection, lastDisconnect, qr } = update;
+
+        if (qr) {
+            currentQR = await QRCode.toDataURL(qr);
+            connectionStatus = 'qr';
+            console.log('[WhatsApp] Nuevo QR generado.');
+        }
+
+        if (connection === 'close') {
+            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+            console.log('[WhatsApp] Conexión cerrada. Reintentando:', shouldReconnect);
+            connectionStatus = 'disconnected';
+            if (shouldReconnect) connectToWhatsApp();
+        } else if (connection === 'open') {
+            console.log('[WhatsApp] ¡Conectado exitosamente!');
+            connectionStatus = 'connected';
+            currentQR = null;
+        }
+    });
+
+    waSocket.ev.on('creds.update', saveCreds);
+
+    waSocket.ev.on('messages.upsert', async m => {
+        // Aquí se integrará la lógica de respuesta automática real
+        // console.log(JSON.stringify(m, undefined, 2));
+    });
+}
+
+// Inicializar conexión
+connectToWhatsApp();
 
 // Configuración de Multer para recibir audios temporales
 const upload = multer({ dest: 'uploads/' });
@@ -29,12 +107,82 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'online',
         services: {
-            cerebro: !!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'TU_LLAVE_AQUI_EMPIEZA_CON_AIza',
+            cerebro: !!process.env.GEMINI_API_KEY,
             oido: !!process.env.OPENAI_API_KEY,
-            voz: !!process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_VOICE_ID !== 'PON_EL_ID_DE_TU_VOZ_AQUI'
+            voz: !!process.env.ELEVENLABS_API_KEY
         }
     });
 });
+
+/**
+ * SERVICIO 0: AUTENTICACIÓN
+ */
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = new User({ email, password });
+        await user.save();
+        const token = jwt.sign({ userId: user._id }, JWT_SECRET);
+        res.status(201).json({ user: { id: user._id, email: user.email }, token });
+    } catch (error) {
+        console.error("Error en Registro:", error);
+        res.status(400).json({ error: 'Error al registrar usuario.' });
+    }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await User.findOne({ email });
+        if (!user || !(await user.comparePassword(password))) {
+            return res.status(401).json({ error: 'Credenciales inválidas.' });
+        }
+        const token = jwt.sign({ userId: user._id }, JWT_SECRET);
+        res.json({ token, user: { id: user._id, email: user.email } });
+    } catch (error) {
+        res.status(500).json({ error: 'Error en el login.' });
+    }
+});
+
+/**
+ * SERVICIO DE GESTIÓN DE CEREBROS
+ */
+app.post('/api/brains', auth, async (req, res) => {
+    try {
+        const brain = new Brain({ ...req.body, userId: req.user.userId });
+        await brain.save();
+        res.status(201).json(brain);
+    } catch (error) {
+        res.status(400).json({ error: 'Error al crear cerebro.' });
+    }
+});
+
+app.get('/api/brains', auth, async (req, res) => {
+    try {
+        const brains = await Brain.find({ userId: req.user.userId });
+        res.json(brains);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener cerebros.' });
+    }
+});
+
+/**
+ * SERVICIO DE ENTRENAMIENTO (Human Intervention)
+ */
+app.post('/api/brains/:id/train', auth, async (req, res) => {
+    try {
+        const { query, aiResponse, correction } = req.body;
+        const brain = await Brain.findOne({ _id: req.params.id, userId: req.user.userId });
+        if (!brain) return res.status(404).json({ error: 'Cerebro no encontrado.' });
+
+        brain.trainingData.push({ query, aiResponse, correction });
+        await brain.save();
+        res.json({ success: true, message: 'Entrenamiento guardado correctamente.' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al entrenar el cerebro.' });
+    }
+});
+
 
 /**
  * SERVICIO 1: OÍDO (Transcripción de Audio con OpenAI Whisper)
@@ -63,76 +211,95 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
 });
 
 /**
+ * SERVICIO 1.5: WHATSAPP REAL QR
+ */
+app.get('/api/whatsapp/qr', auth, (req, res) => {
+    res.json({
+        status: connectionStatus,
+        qr: currentQR
+    });
+});
+
+/**
  * SERVICIO 2: CEREBRO (Generación de Respuesta y Sentimientos con Gemini)
  */
-app.post('/api/cerebro', async (req, res) => {
+app.post('/api/cerebro', auth, async (req, res) => {
     try {
         const {
             mensajeCliente,
             historial = [],
-            catalogoProductos = [],
-            respuestasRapidas = {},
+            brainId,
             ultimoItemEnviadoPorHumano = null
         } = req.body;
 
-        // Obtener modelo gemini-1.5-flash
+        // Cargar contexto del Cerebro desde la DB
+        let catalogoProductos = [];
+        let respuestasRapidas = {};
+        let brainName = "Cerebro General";
+        let extraExamples = "";
+
+        if (brainId) {
+            const brain = await Brain.findOne({ _id: brainId, userId: req.user.userId });
+            if (brain) {
+                catalogoProductos = brain.catalogoProductos;
+                respuestasRapidas = brain.respuestasRapidas;
+                brainName = brain.name;
+
+                // Inyectar ejemplos de entrenamiento previo
+                if (brain.trainingData && brain.trainingData.length > 0) {
+                    extraExamples = "\nEJEMPLOS DE CORRECCIONES PREVIAS (Aprende de esto):\n" +
+                        brain.trainingData.slice(-5).map(t => `Cliente: "${t.query}"\nIA propuso: "${t.aiResponse}"\nHumano corrigió a: "${t.correction}"`).join("\n---\n");
+                }
+            }
+        }
+
         const model = geminiApi.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        // Construcción del Prompt Avanzado del Agente Clonador con Activos del CRM
         const systemPrompt = `
-      Eres una 'Instancia de Cerebro Clonado' para un experto en ventas de Autos y Pipas de Agua.
+      Eres una 'Instancia de Cerebro Clonado' llamada "${brainName}".
       Actúas de manera 100% natural, como un humano real. Tu meta es cerrar el 90% de las ventas.
       
       ESTADO ACTUAL DE LA MEMORIA:
       - Historial del chat: ${JSON.stringify(historial)}
-      - Último producto que el humano envió manualmente (Sigue este contexto si existe): ${ultimoItemEnviadoPorHumano ? JSON.stringify(ultimoItemEnviadoPorHumano) : 'Ninguno'}
+      - Último producto que el humano envió manualmente: ${ultimoItemEnviadoPorHumano ? JSON.stringify(ultimoItemEnviadoPorHumano) : 'Ninguno'}
       
       ACTIVOS DEL CRM A TU DISPOSICIÓN:
-      1. Catálogo de Productos (Usa esta info para precios/disponibilidad):
+      1. Catálogo de Productos Info:
       ${JSON.stringify(catalogoProductos)}
       
-      2. Respuestas Rápidas / Shortcuts del Vendedor (Usa su estilo o envíalas íntegras si aplican):
+      2. Estilo de Respuestas Rápidas:
       ${JSON.stringify(respuestasRapidas)}
+      ${extraExamples}
       
-      REGLAS DE DECISIÓN (Semáforo Emocional):
-      - Si está MOLESTO (Rojo): Eres empático, solucionador.
-      - Si está DUDOSO (Amarillo): Usas pruebas sociales y escasez. Si es necesario, sugiere enviar un "video_demostrativo" o "pdf_ficha_tecnica".
-      - Si está LISTO (Verde): Vas directo al cierre y pides datos. Sugiere enviar "pdf_contrato" o "datos_bancarios".
+      REGLAS DE DECISIÓN:
+      - Si está MOLESTO (Rojo): Eres empático, no discutas, busca solución.
+      - Si está DUDOSO (Amarillo): Usa pruebas sociales y escasez.
+      - Si está LISTO (Verde): Ve al cierre (datos bancarios, contrato).
       
       Mensaje actual del cliente: "${mensajeCliente}"
       
-      Devuelve un JSON exacto con la siguiente estructura y NADA MÁS:
+      Devuelve un JSON exacto con la siguiente estructura:
       {
          "sentiment": "rojo|amarillo|verde",
-         "reasoning": "Por qué elegiste ese color",
-         "respuestaTexto": "La respuesta exacta que enviarás al cliente.",
+         "reasoning": "Breve explicación",
+         "respuestaTexto": "Respuesta final",
          "requiereMultimedia": "ninguno|video_demostrativo|pdf_ficha_tecnica|pdf_contrato|datos_bancarios"
       }
     `;
 
-        console.log("[Gemini] Generando respuesta (2.0-flash) para:", mensajeCliente);
-
-        // El descubrimiento reveló que gemini-2.0-flash es el modelo óptimo disponible en este entorno
         const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
-
         const response = await axios.post(geminiUrl, {
             contents: [{ role: 'user', parts: [{ text: systemPrompt }] }]
         });
 
         const textResponse = response.data.candidates[0].content.parts[0].text;
-        console.log("[Gemini] Respuesta generada exitosamente.");
-
-        // Limpiar JSON si Gemini lo envuelve en markdown
         const jsonString = textResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
         const brainOutput = JSON.parse(jsonString);
 
         res.json(brainOutput);
     } catch (error) {
-        console.error("Error en Cerebro Gemini:", error.response?.data || error.message);
-        res.status(500).json({
-            error: 'Fallo en la red neuronal de generación.',
-            details: error.response?.data || error.message
-        });
+        console.error("Error en Cerebro Gemini:", error.message);
+        res.status(500).json({ error: 'Fallo en la generación.' });
     }
 });
 
