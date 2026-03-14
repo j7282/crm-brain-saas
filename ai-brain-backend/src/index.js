@@ -110,26 +110,17 @@ app.post('/api/cerebro', async (req, res) => {
       }
     `;
 
-        console.log("[Gemini] Diagnostic: Listando modelos disponibles...");
-        try {
-            const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`;
-            const listRes = await axios.get(listUrl);
-            console.log("[Gemini] Modelos disponibles:", listRes.data.models.map(m => m.name).join(", "));
-        } catch (listErr) {
-            console.error("[Gemini] Error al listar modelos:", listErr.message);
-        }
+        console.log("[Gemini] Generando respuesta (2.0-flash) para:", mensajeCliente);
 
-        console.log("[Gemini] API Key detectada:", process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.substring(0, 5) + "..." : "No detectada");
-        console.log("[Gemini] Generando respuesta (v1beta REST API) para:", mensajeCliente);
-
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+        // El descubrimiento reveló que gemini-2.0-flash es el modelo óptimo disponible en este entorno
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
         const response = await axios.post(geminiUrl, {
             contents: [{ role: 'user', parts: [{ text: systemPrompt }] }]
         });
 
         const textResponse = response.data.candidates[0].content.parts[0].text;
-        console.log("[Gemini] Respuesta recibida con éxito");
+        console.log("[Gemini] Respuesta generada exitosamente.");
 
         // Limpiar JSON si Gemini lo envuelve en markdown
         const jsonString = textResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
@@ -252,27 +243,6 @@ app.post('/webhook/whatsapp', async (req, res) => {
     } catch (error) {
         console.error("Error en Flujo Maestro:", error);
         res.status(500).send('Error');
-    }
-});
-
-/**
- * DIAGNÓSTICO: Listar Modelos de Gemini (Para resolver error 404 en Prod)
- */
-app.get('/api/gemini-test', async (req, res) => {
-    try {
-        const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`;
-        const listRes = await axios.get(listUrl);
-        res.json({
-            keyDetected: !!process.env.GEMINI_API_KEY,
-            keyStart: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.substring(0, 5) : "N/A",
-            models: listRes.data.models.map(m => ({ name: m.name, methods: m.supportedGenerationMethods }))
-        });
-    } catch (error) {
-        res.status(500).json({
-            error: "Error al listar modelos",
-            message: error.message,
-            details: error.response?.data
-        });
     }
 });
 
