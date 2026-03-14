@@ -27,7 +27,9 @@ app.use(cors());
 app.use(express.json());
 
 // Conexión a MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/brain-clone-saas')
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/brain-clone-saas', {
+    serverSelectionTimeoutMS: 5000 // Error rápido si no hay DB
+})
     .then(() => console.log('[DB] Conectado a MongoDB'))
     .catch(err => console.error('[DB] Error de conexión:', err));
 
@@ -422,4 +424,10 @@ app.listen(port, () => {
     console.log(`- Oído Whisper: ACTIVO`);
     console.log(`- Cerebro Gemini: ACTIVO`);
     console.log(`- Voz ElevenLabs: ACTIVO`);
+});
+
+// Error Handler Global
+app.use((err, req, res, next) => {
+    console.error("GLOBAL ERROR:", err);
+    res.status(500).json({ error: err.message || 'Error interno del servidor' });
 });
