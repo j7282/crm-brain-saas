@@ -106,6 +106,7 @@ const upload = multer({ dest: 'uploads/' });
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'online',
+        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
         services: {
             cerebro: !!process.env.GEMINI_API_KEY,
             oido: !!process.env.OPENAI_API_KEY,
@@ -129,7 +130,7 @@ app.post('/api/auth/register', async (req, res) => {
         if (error.code === 11000) {
             return res.status(400).json({ error: 'Ese correo electrónico ya está registrado.' });
         }
-        res.status(400).json({ error: 'Error al registrar usuario.' });
+        res.status(400).json({ error: error.message || 'Error al registrar usuario.' });
     }
 });
 
