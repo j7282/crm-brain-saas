@@ -255,6 +255,27 @@ app.post('/webhook/whatsapp', async (req, res) => {
     }
 });
 
+/**
+ * DIAGNÓSTICO: Listar Modelos de Gemini (Para resolver error 404 en Prod)
+ */
+app.get('/api/gemini-test', async (req, res) => {
+    try {
+        const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`;
+        const listRes = await axios.get(listUrl);
+        res.json({
+            keyDetected: !!process.env.GEMINI_API_KEY,
+            keyStart: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.substring(0, 5) : "N/A",
+            models: listRes.data.models.map(m => ({ name: m.name, methods: m.supportedGenerationMethods }))
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: "Error al listar modelos",
+            message: error.message,
+            details: error.response?.data
+        });
+    }
+});
+
 app.listen(port, () => {
     console.log(`[Cerebro Central] Motor Backend corriendo en puerto ${port}`);
     console.log(`- Oído Whisper: ACTIVO`);
