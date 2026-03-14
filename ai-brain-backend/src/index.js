@@ -75,8 +75,8 @@ app.post('/api/cerebro', async (req, res) => {
             ultimoItemEnviadoPorHumano = null
         } = req.body;
 
-        // Obtener modelo gemini-1.5-flash-latest o pro
-        const model = geminiApi.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+        // Obtener modelo gemini-1.5-flash
+        const model = geminiApi.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         // Construcción del Prompt Avanzado del Agente Clonador con Activos del CRM
         const systemPrompt = `
@@ -111,7 +111,15 @@ app.post('/api/cerebro', async (req, res) => {
     `;
 
         console.log("[Gemini] Generando respuesta para:", mensajeCliente);
-        const result = await model.generateContent(systemPrompt);
+        let result;
+        try {
+            result = await model.generateContent(systemPrompt);
+        } catch (flashError) {
+            console.error("[Gemini] Error con Flash, intentando con Pro:", flashError.message);
+            const backupModel = geminiApi.getGenerativeModel({ model: "gemini-pro" });
+            result = await backupModel.generateContent(systemPrompt);
+        }
+
         const textResponse = result.response.text();
         console.log("[Gemini] Respuesta recibida");
 
