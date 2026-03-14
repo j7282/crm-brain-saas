@@ -132,7 +132,11 @@ app.post('/api/auth/register', async (req, res) => {
         if (error.code === 11000) {
             return res.status(400).json({ error: 'Ese correo electrónico ya está registrado.' });
         }
-        res.status(400).json({ error: error.message || 'Error al registrar usuario.' });
+
+        const dbStatus = mongoose.connection.readyState === 1 ? 'conectada' : 'DESCONECTADA';
+        const msg = `Fallo en el servidor: ${error.message || 'Error desconocido'}. Estado DB: ${dbStatus}`;
+
+        res.status(400).json({ error: msg });
     }
 });
 
