@@ -110,19 +110,17 @@ app.post('/api/cerebro', async (req, res) => {
       }
     `;
 
-        console.log("[Gemini] Generando respuesta (v1 REST API) para:", mensajeCliente);
+        console.log("[Gemini] API Key detectada:", process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.substring(0, 5) + "..." : "No detectada");
+        console.log("[Gemini] Generando respuesta (v1beta REST API) para:", mensajeCliente);
 
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
         const response = await axios.post(geminiUrl, {
-            contents: [{ role: 'user', parts: [{ text: systemPrompt }] }],
-            generationConfig: {
-                // response_mime_type: "application/json" // Note: gemini-1.5-flash supports json mode, but let's keep it simple first
-            }
+            contents: [{ role: 'user', parts: [{ text: systemPrompt }] }]
         });
 
         const textResponse = response.data.candidates[0].content.parts[0].text;
-        console.log("[Gemini] Respuesta recibida");
+        console.log("[Gemini] Respuesta recibida con éxito");
 
         // Limpiar JSON si Gemini lo envuelve en markdown
         const jsonString = textResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
