@@ -40,6 +40,8 @@ function App() {
   const [suggestedResponse, setSuggestedResponse] = useState('');
   const [activeBrainId, setActiveBrainId] = useState(null);
   const [lastQuery, setLastQuery] = useState('');
+  const [historyMonths, setHistoryMonths] = useState('3 Meses');
+  const [mirrorMode, setMirrorMode] = useState(true);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -383,7 +385,19 @@ function App() {
                 </label>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   {['1 Mes', '3 Meses', '6 Meses', 'Todo'].map(btn => (
-                    <button key={btn} className="secondary-btn" style={{ flex: 1, padding: '8px' }}>{btn}</button>
+                    <button
+                      key={btn}
+                      className={`secondary-btn ${historyMonths === btn ? 'active' : ''}`}
+                      style={{
+                        flex: 1,
+                        padding: '8px',
+                        border: historyMonths === btn ? '2px solid var(--accent-cyan)' : '1px solid var(--border-color)',
+                        backgroundColor: historyMonths === btn ? 'rgba(0, 240, 255, 0.1)' : 'transparent'
+                      }}
+                      onClick={() => setHistoryMonths(btn)}
+                    >
+                      {btn}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -406,7 +420,12 @@ function App() {
                   </p>
                 </div>
                 <div style={{ marginLeft: 'auto' }}>
-                  <input type="checkbox" style={{ transform: 'scale(1.5)', cursor: 'pointer' }} defaultChecked />
+                  <input
+                    type="checkbox"
+                    style={{ transform: 'scale(1.5)', cursor: 'pointer' }}
+                    checked={mirrorMode}
+                    onChange={(e) => setMirrorMode(e.target.checked)}
+                  />
                 </div>
               </div>
 
@@ -424,8 +443,9 @@ function App() {
                       },
                       body: JSON.stringify({
                         name: brainName,
-                        niche: 'Autos/Pipas',
-                        shadowMode: true
+                        niche: 'Ventas Automáticas',
+                        historyLimit: historyMonths,
+                        shadowMode: mirrorMode
                       })
                     });
                     const data = await res.json();
