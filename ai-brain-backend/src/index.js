@@ -69,6 +69,7 @@ const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID;
 let waSocket = null;
 let currentQR = null;
 let connectionStatus = 'disconnected';
+let isConnecting = false;
 const WA_AUTH_DIR = path.join(process.cwd(), 'wa_auth'); // Usar CWD para evitar problemas de __dirname en Render
 
 // Limpiar sesión caducada y forzar nuevo QR en cada inicio
@@ -88,7 +89,13 @@ function clearWASession() {
 }
 
 async function connectToWhatsApp(forceNew = false) {
-    console.log(`[WhatsApp] 🔄 Intentando conexión (forceNew: ${forceNew})...`);
+    if (isConnecting && !forceNew) {
+        console.log('[WhatsApp] ⏳ Ya hay un intento de conexión en curso. Ignorando...');
+        return;
+    }
+
+    console.log(`[WhatsApp] 🔄 Iniciando intento de conexión (forceNew: ${forceNew})...`);
+    isConnecting = true;
     connectionStatus = 'connecting';
     currentQR = null;
 
@@ -98,8 +105,11 @@ async function connectToWhatsApp(forceNew = false) {
         const { state, saveCreds } = await useMultiFileAuthState(WA_AUTH_DIR);
 
         if (waSocket) {
-            console.log('[WhatsApp] Limpiando socket previo...');
-            try { waSocket.end(); } catch (_) { }
+            console.log('[WhatsApp] Limpiando socket previo antes de reconectar...');
+            try {
+                waSocket.ev.removeAllListeners();
+                waSocket.end();
+            } catch (_) { }
             waSocket = null;
         }
 
@@ -107,7 +117,7 @@ async function connectToWhatsApp(forceNew = false) {
             auth: state,
             printQRInTerminal: true,
             logger: pino({ level: 'info' }),
-            browser: ['CRM Brain', 'Chrome', '114.0.5735.198'],
+            browser: ['Ubuntu', 'Chrome', '110.0.5563.147'],
             connectTimeoutMs: 60000,
             defaultQueryTimeoutMs: 60000,
             keepAliveIntervalMs: 15000,
@@ -181,9 +191,11 @@ async function connectToWhatsApp(forceNew = false) {
             }
         });
     } catch (err) {
-        console.error('[WhatsApp] ❌ ERROR CRÍTICO al conectar:', err);
+        console.error('[WhatsApp] ❌ ERROR CRITICAL al conectar:', err);
         connectionStatus = 'disconnected';
         setTimeout(() => connectToWhatsApp(true), 10000);
+    } finally {
+        isConnecting = false;
     }
 }
 
