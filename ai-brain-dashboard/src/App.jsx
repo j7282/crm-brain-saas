@@ -532,102 +532,168 @@ function App() {
                   <div className="inbox-layout">
                     {/* Chat List (Sidebar of Inbox) */}
                     <div className="chat-list">
-                      <div className="chat-item sentiment-red active">
-                        <div className="chat-header">
-                          <span className="contact-name">Carlos Ruiz</span>
-                          <span className="time">10:42 AM</span>
+                      <div className="search-container">
+                        <div className="search-bar">
+                          <span style={{ color: 'var(--text-secondary)' }}>🔍</span>
+                          <input type="text" className="search-input" placeholder="Busca un chat o contacto" />
                         </div>
-                        <p className="last-message" style={{ color: 'var(--text-primary)' }}>¡Ya deposité hace 2 horas y no me confirman!</p>
                       </div>
 
-                      <div className="chat-item sentiment-green">
-                        <div className="chat-header">
-                          <span className="contact-name">Ana M. (Cot. #492)</span>
-                          <span className="time">10:38 AM</span>
+                      <div className="chat-item active">
+                        <div className="avatar">
+                          <img src="https://i.pravatar.cc/150?u=carlos" alt="Carlos" />
                         </div>
-                        <p className="last-message">Perfecto, mándame los datos para la transferencia.</p>
+                        <div className="chat-info">
+                          <div className="chat-header">
+                            <span className="contact-name">Carlos Ruiz</span>
+                            <span className="time">10:42</span>
+                          </div>
+                          <div className="chat-preview-row">
+                            <span className="sentiment-badge bg-red"></span>
+                            <p className="last-message" style={{ color: 'var(--text-primary)' }}>¡Ya deposité hace 2 horas y no me confirman!</p>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="chat-item sentiment-yellow">
-                        <div className="chat-header">
-                          <span className="contact-name">Roberto J.</span>
-                          <span className="time">09:15 AM</span>
+                      <div className="chat-item">
+                        <div className="avatar">AM</div>
+                        <div className="chat-info">
+                          <div className="chat-header">
+                            <span className="contact-name">Ana M. (Cot. #492)</span>
+                            <span className="time">Ayer</span>
+                          </div>
+                          <div className="chat-preview-row">
+                            <span className="sentiment-badge bg-green"></span>
+                            <p className="last-message">Perfecto, mándame los datos para la transferencia.</p>
+                          </div>
                         </div>
-                        <p className="last-message">Me gusta, pero vi uno similar más barato en otra agencia.</p>
+                      </div>
+
+                      <div className="chat-item">
+                        <div className="avatar">
+                          <img src="https://i.pravatar.cc/150?u=roberto" alt="Roberto" />
+                        </div>
+                        <div className="chat-info">
+                          <div className="chat-header">
+                            <span className="contact-name">Roberto J.</span>
+                            <span className="time">Ayer</span>
+                          </div>
+                          <div className="chat-preview-row">
+                            <span className="sentiment-badge bg-yellow"></span>
+                            <p className="last-message">Me gusta, pero vi uno similar más barato en otra agencia.</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
                     {/* Active Chat View */}
                     <div className="chat-view">
                       <div className="chat-view-header">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>CR</div>
-                          <div>
-                            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Carlos Ruiz</h3>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span className="sentiment-badge badge-red">Estado: Molesto</span>
-                              <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>Prioridad: Urgente</span>
-                            </div>
+                        <div className="header-user-info">
+                          <div className="avatar" style={{ width: '40px', height: '40px', marginRight: '12px' }}>
+                            <img src="https://i.pravatar.cc/150?u=carlos" alt="Carlos" />
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span className="contact-name" style={{ fontSize: '1rem' }}>Carlos Ruiz</span>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--sentiment-red)' }}>Prioridad: Urgente</span>
                           </div>
                         </div>
-                        <button className="take-control-btn" onClick={() => {
-                          setSuggestedResponse("¡Hola Carlos! Siento mucho la demora. He verificado manualmente y tu pago ya fue recibido. En 5 minutos te llega el contrato.");
-                          setIsInterventionMode(true);
-                        }}>
-                          <span>🛑</span> Tomar Control Manual
-                        </button>
+                        <div className="header-icons">
+                          <button className="take-control-btn" onClick={() => {
+                            setSuggestedResponse("¡Hola Carlos! Siento mucho la demora. He verificado manualmente y tu pago ya fue recibido. En 5 minutos te llega el contrato.");
+                            setIsInterventionMode(true);
+                          }}>
+                            <span>🛑</span> Tomar Control
+                          </button>
+                        </div>
                       </div>
 
                       <div className="messages-area">
-                        <div style={{ textAlign: 'center', margin: '20px 0', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>Inicio de la conversación (Simulador)</div>
-
-                        <div className="message client">
-                          ¡Hola! Ya hice el pago del enganche para el auto, te mandé foto del comprobante hace como 2 horas y nadie me dice nada. ¿Qué pasó?
+                        <div style={{ textAlign: 'center', margin: '20px 0', padding: '5px 12px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', color: 'var(--text-secondary)', fontSize: '0.75rem', alignSelf: 'center', zIndex: 1 }}>
+                          Inicio de la conversación (Simulador)
                         </div>
 
-                        <div className="message ai">
-                          Hola Carlos. Entiendo completamente tu preocupación. Una disculpa por la demora, estábamos verificando el reflejo del pago en el sistema bancario.
-                          <br /><br />
-                          ¡Buenas noticias! Tu pago inicial ya está confirmado. En unos minutos te enviaré el contrato digital para firma.
-                          <div style={{ marginTop: '8px', fontSize: '0.75rem', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span>✨</span> Generado automáticamente - Estrategia Emocional: "Validación y Rapidez"
+                        <div className="message-container client">
+                          <div className="message client">
+                            <div className="message-content">
+                              ¡Hola! Ya hice el pago del enganche para el auto, te mandé foto del comprobante hace como 2 horas y nadie me dice nada. ¿Qué pasó?
+                            </div>
+                            <div className="message-meta">
+                              <span className="message-time">10:40</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="message-container ai">
+                          <div className="message ai">
+                            <div className="message-content">
+                              Hola Carlos. Entiendo completamente tu preocupación. Una disculpa por la demora, estábamos verificando el reflejo del pago en el sistema bancario.
+                              <br /><br />
+                              ¡Buenas noticias! Tu pago inicial ya está confirmado. En unos minutos te enviaré el contrato digital para firma.
+                            </div>
+                            <div className="ai-meta">
+                              <span>✨</span> Estrategia: Validación y Rapidez
+                            </div>
+                            <div className="message-meta">
+                              <span className="message-time">10:41</span>
+                            </div>
                           </div>
                         </div>
 
                         {messages.map((msg, idx) => (
-                          <div key={idx} className={`message ${msg.role}`}>
-                            {msg.text}
+                          <div key={idx} className={`message-container ${msg.role}`}>
+                            <div className={`message ${msg.role}`}>
+                              <div className="message-content">
+                                {msg.text}
+                              </div>
+                              <div className="message-meta">
+                                <span className="message-time">10:42</span> {/* Simulated time */}
+                              </div>
+                            </div>
                           </div>
                         ))}
 
                         {isTyping && (
-                          <div className="message ai" style={{ opacity: 0.7, fontStyle: 'italic' }}>
-                            Escribiendo...
+                          <div className="message-container ai">
+                            <div className="message ai" style={{ opacity: 0.7, fontStyle: 'italic', paddingRight: '16px' }}>
+                              Escribiendo...
+                            </div>
                           </div>
                         )}
                         <div ref={messagesEndRef} />
                       </div>
 
                       <div className="input-area">
-                        <div className="action-btn">📎</div>
-                        <div className="action-btn" style={{ position: 'relative' }}>
-                          🎙️
-                          <div style={{ position: 'absolute', top: -4, right: -4, width: '12px', height: '12px', backgroundColor: 'var(--accent-purple)', borderRadius: '50%', border: '2px solid var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <span style={{ fontSize: '6px' }}>✨</span>
+                        <div className="action-btn">
+                          <span style={{ fontSize: '1.2rem' }}>😊</span>
+                        </div>
+                        <div className="action-btn">
+                          <span style={{ fontSize: '1.2rem', transform: 'rotate(-45deg)', display: 'inline-block' }}>📎</span>
+                        </div>
+
+                        <div className="chat-input-wrapper">
+                          <input
+                            type="text"
+                            className="chat-input"
+                            placeholder="Escribe un mensaje"
+                            value={inputText}
+                            onChange={(e) => setInputText(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                            disabled={isTyping}
+                          />
+                        </div>
+
+                        {inputText.trim() ? (
+                          <div className="action-btn send" onClick={handleSendMessage} style={{ cursor: isTyping ? 'not-allowed' : 'pointer' }}>
+                            <span style={{ fontSize: '1.2rem' }}>➤</span>
                           </div>
-                        </div>
-                        <input
-                          type="text"
-                          className="chat-input"
-                          placeholder="Escribe un mensaje para probar la IA..."
-                          value={inputText}
-                          onChange={(e) => setInputText(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                          disabled={isTyping}
-                        />
-                        <div className="action-btn send" onClick={handleSendMessage} style={{ cursor: isTyping ? 'not-allowed' : 'pointer' }}>
-                          {isTyping ? '...' : '➤'}
-                        </div>
+                        ) : (
+                          <div className="action-btn" style={{ position: 'relative' }}>
+                            <span style={{ fontSize: '1.2rem' }}>🎙️</span>
+                            <div style={{ position: 'absolute', top: -0, right: -0, width: '12px', height: '12px', backgroundColor: 'var(--accent-purple)', borderRadius: '50%', border: '2px solid var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: '6px', color: 'white' }}>✨</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
