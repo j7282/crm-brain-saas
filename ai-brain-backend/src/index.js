@@ -161,13 +161,13 @@ async function connectToWhatsApp(forceNew = false) {
                 const isLoggedOut = code === DisconnectReason.loggedOut;
 
                 if (isLoggedOut) {
-                    console.log('[WhatsApp] 🚪 Sesión cerrada. Limpiando...');
+                    console.log('[WhatsApp] 🚪 SESIÓN CERRADA POR EL USUARIO. Limpiando...');
                     connectionStatus = 'disconnected';
                     currentQR = null;
                     clearWASession();
-                    setTimeout(() => connectToWhatsApp(true), 5000); // Forzar nuevo QR si se cerró sesión
+                    setTimeout(() => connectToWhatsApp(true), 5000);
                 } else {
-                    // Reconexión simple manteniendo la sesión
+                    console.log('[WhatsApp] 🔄 Reintentando conexión sin borrar sesión...');
                     setTimeout(() => {
                         isConnecting = false;
                         connectToWhatsApp(false);
@@ -395,6 +395,15 @@ app.get('/api/whatsapp/debug', auth, (req, res) => {
         authFiles: fs.existsSync(WA_AUTH_DIR) ? fs.readdirSync(WA_AUTH_DIR) : [],
         time: new Date()
     });
+});
+
+app.get('/api/debug/brains', auth, async (req, res) => {
+    try {
+        const brains = await dbFind(brainsDb, {});
+        res.json({ count: brains.length, brains: brains.map(b => ({ name: b.name || b.nombre, id: b._id })) });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Resetear sesión de WhatsApp y forzar nuevo QR
