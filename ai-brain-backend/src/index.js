@@ -71,6 +71,7 @@ let currentQR = null;
 let connectionStatus = 'disconnected';
 let isConnecting = false;
 let lastError = null;
+let lastReceivedMessage = null; // Para debug de mensajes entrantes
 const WA_AUTH_DIR = path.join(process.cwd(), 'wa_auth'); // Usar CWD para evitar problemas de __dirname en Render
 
 // Limpiar sesión caducada y forzar nuevo QR en cada inicio
@@ -184,10 +185,28 @@ async function connectToWhatsApp(forceNew = false) {
 
         waSocket.ev.on('messages.upsert', async m => {
             const msg = m.messages[0];
-            if (!msg.message || msg.key.fromMe) return;
+            if (!msg.message) return;
+
+            // Debug: capturar el mensaje literal para ver qué llega
+            lastReceivedMessage = {
+                type: m.type,
+                pushName: msg.pushName,
+                key: msg.key,
+                message: msg.message,
+                timestamp: new Date()
+            };
+
+            if (msg.key.fromMe) return;
 
             const from = msg.key.remoteJid;
-            const text = msg.message.conversation || msg.message.extendedTextMessage?.text;
+
+            // Extracción robusta de texto
+            const text = msg.message.conversation ||
+                msg.message.extendedTextMessage?.text ||
+                msg.message.imageMessage?.caption ||
+                msg.message.videoMessage?.caption ||
+                msg.message.buttonsResponseMessage?.selectedButtonId ||
+                msg.message.templateButtonReplyMessage?.selectedId;
 
             if (text) {
                 console.log(`[WhatsApp] 📩 Mensaje de ${from}: ${text}`);
@@ -349,6 +368,10 @@ app.get('/api/whatsapp/qr', auth, (req, res) => {
         status: connectionStatus,
         qr: currentQR
     });
+});
+
+app.get('/api/whatsapp/messages/last', auth, (req, res) => {
+    res.json(lastReceivedMessage || { message: "No se ha recibido ningún mensaje aún." });
 });
 
 app.get('/api/whatsapp/debug', auth, (req, res) => {
