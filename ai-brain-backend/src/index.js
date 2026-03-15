@@ -200,20 +200,27 @@ async function connectToWhatsApp(forceNew = false) {
 
             const from = msg.key.remoteJid;
 
-            // Extracción robusta de texto
+            // Extracción ULTRA-robusta de texto
             const text = msg.message.conversation ||
                 msg.message.extendedTextMessage?.text ||
                 msg.message.imageMessage?.caption ||
                 msg.message.videoMessage?.caption ||
                 msg.message.buttonsResponseMessage?.selectedButtonId ||
-                msg.message.templateButtonReplyMessage?.selectedId;
+                msg.message.templateButtonReplyMessage?.selectedId ||
+                msg.message.listResponseMessage?.title ||
+                msg.message.ephemeralMessage?.message?.conversation ||
+                msg.message.viewOnceMessage?.message?.conversation ||
+                msg.message.viewOnceMessageV2?.message?.conversation ||
+                msg.message.documentWithCaptionMessage?.message?.documentMessage?.caption;
 
             if (text) {
-                console.log(`[WhatsApp] 📩 Mensaje de ${from}: ${text}`);
+                console.log(`[WhatsApp] 📥 RECIBIDO de ${from}: "${text}"`);
 
                 try {
                     const brains = await dbFind(brainsDb, {});
-                    const activeBrain = brains[0] || { nombre: 'Cerebro Genérico', catalogo: [], shortcuts: {} };
+                    const activeBrain = brains[0] || { nombre: 'Cerebro Genérico', catalogo: [], shortcuts: {}, nicho: 'Ventas' };
+
+                    console.log(`[WhatsApp] 🧠 Procesando "${text}" con cerebro: ${activeBrain.name || activeBrain.nombre}`);
 
                     const result = await generateAIResponse({
                         brain: activeBrain,
@@ -221,10 +228,15 @@ async function connectToWhatsApp(forceNew = false) {
                         historial: []
                     });
 
-                    console.log(`[WhatsApp] 🤖 Respuesta para ${from}: ${result.respuestaTexto}`);
-                    await waSocket.sendMessage(from, { text: result.respuestaTexto });
+                    if (result && result.respuestaTexto) {
+                        console.log(`[WhatsApp] 🤖 RESPUESTA GENERADA: "${result.respuestaTexto}"`);
+                        await waSocket.sendMessage(from, { text: result.respuestaTexto });
+                        console.log(`[WhatsApp] ✅ Mensaje enviado exitosamente a ${from}`);
+                    } else {
+                        console.warn('[WhatsApp] ⚠️ La IA devolvió una respuesta vacía o inválida:', result);
+                    }
                 } catch (error) {
-                    console.error('[WhatsApp] ❌ Error flujo IA:', error.message);
+                    console.error('[WhatsApp] ❌ Error crítico en el flujo de la IA:', error);
                 }
             }
         });
