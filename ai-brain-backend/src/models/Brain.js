@@ -12,6 +12,16 @@ const brainSchema = new mongoose.Schema({
         elevenLabsVoiceId: { type: String },
         sampleAudios: { type: Array, default: [] }
     },
+    personalityTraits: {
+        isWhatsAppStyle: { type: Boolean, default: true },
+        aggressivenessLevel: { type: Number, default: 5 }, // 1 to 10 scale
+        forbidLongLinks: { type: Boolean, default: false }
+    },
+    knowledgeBase: [{
+        source: { type: String }, // e.g., URL or File Name
+        content: { type: String },
+        timestamp: { type: Date, default: Date.now }
+    }],
     trainingData: [{
         query: { type: String },
         aiResponse: { type: String },

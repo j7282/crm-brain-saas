@@ -14,6 +14,9 @@ const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLat
 const QRCode = require('qrcode');
 const pino = require('pino');
 const Datastore = require('@seald-io/nedb');
+const { scrapeUrl } = require('./services/scraper');
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // =============================================
 // BASE DE DATOS LOCAL (NeDB - Sin configuración)
@@ -331,6 +334,16 @@ app.get('/api/brains', auth, async (req, res) => {
     }
 });
 
+app.get('/api/brains/:id', auth, async (req, res) => {
+    try {
+        const brain = await dbFindOne(brainsDb, { _id: req.params.id, userId: req.user.userId });
+        if (!brain) return res.status(404).json({ error: 'Cerebro no encontrado.' });
+        res.json(brain);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener el cerebro.' });
+    }
+});
+
 /**
  * SERVICIO DE ENTRENAMIENTO
  */
@@ -344,6 +357,49 @@ app.post('/api/brains/:id/train', auth, async (req, res) => {
         res.json({ success: true, message: 'Entrenamiento guardado correctamente.' });
     } catch (error) {
         res.status(500).json({ error: 'Error al entrenar el cerebro.' });
+    }
+});
+
+/**
+ * SERVICIO DE CONOCIMIENTO (Link Reader)
+ */
+app.post('/api/knowledge/url', auth, async (req, res) => {
+    try {
+        const { url, brainId } = req.body;
+        if (!url || !brainId) {
+            return res.status(400).json({ error: 'URL y ID de cerebro son requeridos.' });
+        }
+
+        console.log(`[Knowledge] 🌐 Scrapeando URL: ${url} para el cerebro ${brainId}`);
+        const content = await scrapeUrl(url);
+
+        const brain = await dbFindOne(brainsDb, { _id: brainId, userId: req.user.userId });
+        if (!brain) return res.status(404).json({ error: 'Cerebro no encontrado.' });
+
+        const knowledgeBase = [...(brain.knowledgeBase || []), { source: url, content, timestamp: new Date() }];
+        await dbUpdate(brainsDb, { _id: brainId }, { $set: { knowledgeBase } });
+
+        res.json({ success: true, message: 'URL leída y añadida a la base de conocimiento con éxito.' });
+    } catch (error) {
+        console.error("Error en Knowledge Scraper:", error.message);
+        res.status(500).json({ error: error.message || 'Error al procesar la URL.' });
+    }
+});
+
+/**
+ * ACTUALIZAR RASGOS DE PERSONALIDAD
+ */
+app.patch('/api/brains/:id/traits', auth, async (req, res) => {
+    try {
+        const { personalityTraits } = req.body;
+        const brain = await dbFindOne(brainsDb, { _id: req.params.id, userId: req.user.userId });
+        if (!brain) return res.status(404).json({ error: 'Cerebro no encontrado.' });
+
+        await dbUpdate(brainsDb, { _id: req.params.id }, { $set: { personalityTraits } });
+        res.json({ success: true, message: 'Rasgos de personalidad actualizados.' });
+    } catch (error) {
+        console.error("Error actualizando rasgos:", error);
+        res.status(500).json({ error: 'Error al actualizar rasgos.' });
     }
 });
 
@@ -431,6 +487,22 @@ async function generateAIResponse({ brain, mensajeCliente, historial = [], ultim
             brain.trainingData.slice(-5).map(t => `Cliente: "${t.query}"\nIA propuso: "${t.aiResponse}"\nHumano corrigió a: "${t.correction}"`).join("\n---\n");
     }
 
+    const personality = brain?.personalityTraits || { isWhatsAppStyle: true, aggressivenessLevel: 5, forbidLongLinks: false };
+    let personalityRules = `\nRASGOS DE PERSONALIDAD DE ESTE CEBERO:\n`;
+    if (personality.isWhatsAppStyle) {
+        personalityRules += "- ESTILO WHATSAPP: Sé casual, usa emojis, responde corto. JAMÁS pidas que te envíen un correo electrónico.\n";
+    }
+    if (personality.forbidLongLinks) {
+        personalityRules += "- PROHIBICIÓN DE LINKS: NO envíes ninguna URL o enlace bajo ninguna circunstancia.\n";
+    }
+    personalityRules += `- AGRESIVIDAD DE CIERRE (1-10): ${personality.aggressivenessLevel}. (1=Muy pasivo, 10=Cierre súper agresivo y persuasivo).\n`;
+
+    let externalKnowledge = "";
+    if (brain?.knowledgeBase && brain.knowledgeBase.length > 0) {
+        externalKnowledge = "\nINFORMACIÓN EXTRAÍDA DE FUENTES EXTERNAS (DOCUMENTOS/URLS):\n" +
+            brain.knowledgeBase.slice(-3).map(k => `Fuente: ${k.source}\nContenido: ${k.content}`).join("\n---\n");
+    }
+
     const systemPrompt = `
       Eres una 'Instancia de Cerebro Clonado' llamada "${brainName}".
       Actúas de manera 100% natural, como un humano real. Tu meta es cerrar el 90% de las ventas.
@@ -438,6 +510,8 @@ async function generateAIResponse({ brain, mensajeCliente, historial = [], ultim
       ESTADO ACTUAL DE LA MEMORIA:
       - Historial del chat: ${JSON.stringify(historial)}
       - Último producto que el humano envió manualmente: ${ultimoItemEnviadoPorHumano ? JSON.stringify(ultimoItemEnviadoPorHumano) : 'Ninguno'}
+      ${personalityRules}
+      ${externalKnowledge}
       
       ACTIVOS DEL CRM A TU DISPOSICIÓN:
       1. Catálogo de Productos Info:
@@ -463,12 +537,11 @@ async function generateAIResponse({ brain, mensajeCliente, historial = [], ultim
       }
     `;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
-    const response = await axios.post(geminiUrl, {
-        contents: [{ role: 'user', parts: [{ text: systemPrompt }] }]
-    });
-
-    const textResponse = response.data.candidates[0].content.parts[0].text;
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    const result = await model.generateContent(systemPrompt);
+    const response = await result.response;
+    const textResponse = response.text();
+    
     const jsonString = textResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
     return JSON.parse(jsonString);
 }
