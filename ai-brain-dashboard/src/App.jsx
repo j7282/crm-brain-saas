@@ -651,20 +651,38 @@ function App() {
                         <div className={`filter-chip ${inboxFilterAssignee === 'ai' ? 'active' : ''}`} onClick={() => setInboxFilterAssignee('ai')}>🤖 De la IA</div>
                       </div>
 
-                      <div className="search-container">
-                        <div className="search-bar">
-                          <MessageSquareText size={16} style={{ color: 'var(--text-tertiary)' }} />
-                          <input type="text" className="search-input" placeholder="Referencia, nombre o teléfono..." />
-                        </div>
-                      </div>
-
-                                <span className={`sentiment-badge bg-${chat.sentiment || 'yellow'}`}></span>
-                                <p className="last-message" style={{ color: 'var(--text-primary)' }}>{chat.lastMessage}</p>
+                      <div className="chat-list-items">
+                        {chats.length === 0 ? (
+                          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                            <p>Sincronizando historial masivo...</p>
+                            <p style={{ fontSize: '0.8rem' }}>Esto puede tomar unos segundos.</p>
+                          </div>
+                        ) : (
+                          chats.map((chat) => (
+                            <div 
+                              key={chat.jid} 
+                              className={`chat-item ${selectedChatJid === chat.jid ? 'active' : ''}`}
+                              onClick={() => setSelectedChatJid(chat.jid)}
+                            >
+                              <div className="avatar">
+                                {chat.pushName?.substring(0, 2).toUpperCase() || 'WA'}
+                              </div>
+                              <div className="chat-info">
+                                <div className="chat-header">
+                                  <span className="contact-name">{chat.pushName || chat.jid.split('@')[0]}</span>
+                                  <span className="time">
+                                    {new Date(chat.lastTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                                <div className="chat-preview-row">
+                                  <span className={`sentiment-badge bg-${chat.sentiment || 'yellow'}`}></span>
+                                  <p className="last-message" style={{ color: 'var(--text-primary)' }}>{chat.lastMessage || 'Sin mensajes'}</p>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))
-                      )}
+                          ))
+                        )}
+                      </div>
                     </div>
 
                     {/* Active Chat View */}
