@@ -1041,6 +1041,29 @@ function App() {
                     </div>
 
                     <div className="metric-grid">
+                      {/* Monitor de Aprendizaje Neuronal */}
+                      <div className="metric-card" style={{ gridColumn: 'span 2', background: 'linear-gradient(135deg, #1a1f3c 0%, #2a305c 100%)', padding: '24px', border: '1px solid var(--accent-purple)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                          <h3 style={{ color: 'white', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <BrainCircuit size={20} className="text-purple" style={{ color: 'var(--accent-purple)' }} /> 
+                            Progreso de Clonación Neuronal de Darwin
+                          </h3>
+                        </div>
+                        
+                        <div className="learning-progress-container">
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>Fase: {neuronalLogs.length > 5 ? 'Sincronización de Estilo' : 'Análisis Inicial'}</span>
+                            <span style={{ color: 'var(--wa-green)' }}>{Math.min(100, (neuronalLogs.length * 10))}%</span>
+                          </div>
+                          <div style={{ height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{ width: `${Math.min(100, (neuronalLogs.length * 10))}%`, height: '100%', background: 'var(--accent-purple)', transition: 'width 1s ease' }}></div>
+                          </div>
+                          <p style={{ marginTop: '12px', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
+                            Darwin ha procesado {neuronalLogs.length} eventos neuronales y analizado {chats.length} conversaciones reales.
+                          </p>
+                        </div>
+                      </div>
+
                       <div className="metric-card">
                         <span className="metric-label">Sentiment Score</span>
                         <span className="metric-value">94%</span>
