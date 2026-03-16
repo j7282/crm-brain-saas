@@ -20,12 +20,12 @@ import {
 } from 'lucide-react'
 
 function App() {
-  const [isOnboarding, setIsOnboarding] = useState(true);
+  const [isOnboarding, setIsOnboarding] = useState(localStorage.getItem('isOnboarding') !== 'false');
   const [onboardingStep, setOnboardingStep] = useState(1);
-  const [brainName, setBrainName] = useState('');
+  const [brainName, setBrainName] = useState(localStorage.getItem('activeBrainName') || '');
   const [waQR, setWaQR] = useState(null);
   const [waStatus, setWaStatus] = useState('disconnected');
-  const [activeTab, setActiveTab] = useState('inbox');
+  const [activeTab, setActiveTab] = useState(localStorage.getItem('activeTab') || 'inbox');
 
   // Simulación de Chat
   const [messages, setMessages] = useState([
@@ -41,7 +41,7 @@ function App() {
   const [authPassword, setAuthPassword] = useState('');
   const [isInterventionMode, setIsInterventionMode] = useState(false);
   const [suggestedResponse, setSuggestedResponse] = useState('');
-  const [activeBrainId, setActiveBrainId] = useState(null);
+  const [activeBrainId, setActiveBrainId] = useState(localStorage.getItem('activeBrainId'));
   const [lastQuery, setLastQuery] = useState('');
   const [historyMonths, setHistoryMonths] = useState('3 Meses');
   const [mirrorMode, setMirrorMode] = useState(true);
@@ -63,6 +63,34 @@ function App() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  useEffect(() => {
+    localStorage.setItem('isOnboarding', isOnboarding);
+    localStorage.setItem('activeTab', activeTab);
+    if (activeBrainId) localStorage.setItem('activeBrainId', activeBrainId);
+    if (brainName) localStorage.setItem('activeBrainName', brainName);
+  }, [isOnboarding, activeTab, activeBrainId, brainName]);
+
+  // Recuperar cerebros al iniciar para saltar onboarding
+  useEffect(() => {
+    if (token && isOnboarding) {
+      const checkExistingBrains = async () => {
+        try {
+          const res = await fetch(`${BACKEND_URL}/api/brains`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const brains = await res.json();
+          if (Array.isArray(brains) && brains.length > 0) {
+            const lastBrain = brains[brains.length - 1];
+            setActiveBrainId(lastBrain._id);
+            setBrainName(lastBrain.nombre);
+            setIsOnboarding(false);
+          }
+        } catch (e) { console.error("Error recuperando cerebros:", e); }
+      };
+      checkExistingBrains();
+    }
+  }, [token]);
 
   useEffect(() => {
     scrollToBottom();
