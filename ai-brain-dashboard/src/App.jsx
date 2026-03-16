@@ -619,36 +619,36 @@ function App() {
                         </div>
                       </div>
 
-                      {chats.length === 0 && (
+                      {chats.length === 0 ? (
                         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
                           <p>No hay hilos de WhatsApp activos.</p>
-                          <p style={{ fontSize: '0.8rem' }}>Conecta tu cuenta en el Onboarding para recibir mensajes.</p>
+                          <p style={{ fontSize: '0.8rem' }}>Conecta tu cuenta para recibir mensajes.</p>
                         </div>
+                      ) : (
+                        chats.map((chat) => (
+                          <div 
+                            key={chat.jid} 
+                            className={`chat-item ${selectedChatJid === chat.jid ? 'active' : ''}`}
+                            onClick={() => setSelectedChatJid(chat.jid)}
+                          >
+                            <div className="avatar">
+                              {chat.pushName?.substring(0, 2).toUpperCase() || 'WA'}
+                            </div>
+                            <div className="chat-info">
+                              <div className="chat-header">
+                                <span className="contact-name">{chat.pushName || chat.jid.split('@')[0]}</span>
+                                <span className="time">
+                                  {new Date(chat.lastTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                              <div className="chat-preview-row">
+                                <span className={`sentiment-badge bg-${chat.sentiment || 'yellow'}`}></span>
+                                <p className="last-message" style={{ color: 'var(--text-primary)' }}>{chat.lastMessage}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
                       )}
-
-                      {chats.map((chat) => (
-                        <div 
-                          key={chat.jid} 
-                          className={`chat-item ${selectedChatJid === chat.jid ? 'active' : ''}`}
-                          onClick={() => setSelectedChatJid(chat.jid)}
-                        >
-                          <div className="avatar">
-                            {chat.pushName?.substring(0, 2).toUpperCase() || 'WA'}
-                          </div>
-                          <div className="chat-info">
-                            <div className="chat-header">
-                              <span className="contact-name">{chat.pushName || chat.jid.split('@')[0]}</span>
-                              <span className="time">
-                                {new Date(chat.lastTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                            <div className="chat-preview-row">
-                              <span className={`sentiment-badge bg-${chat.sentiment || 'yellow'}`}></span>
-                              <p className="last-message" style={{ color: 'var(--text-primary)' }}>{chat.lastMessage}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
                     </div>
 
                     {/* Active Chat View */}
@@ -700,30 +700,32 @@ function App() {
                             <div ref={messagesEndRef} />
                           </div>
 
-                      <div className="input-area">
-                        <div className="action-btn">
-                          <Plus size={20} />
-                        </div>
-                        <div className="chat-input-wrapper">
-                          <textarea
-                            className="chat-input"
-                            placeholder="Escribe un mensaje aquí..."
-                            rows="1"
-                            value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSendMessage();
-                              }
-                            }}
-                          />
-                          <Smile size={20} style={{ color: 'var(--text-tertiary)', cursor: 'pointer', marginLeft: '10px' }} />
-                        </div>
-                        <div className="action-btn send" onClick={handleSendMessage}>
-                          <Send size={20} />
-                        </div>
-                      </div>
+                          <div className="input-area">
+                            <div className="action-btn">
+                              <Plus size={20} />
+                            </div>
+                            <div className="chat-input-wrapper">
+                              <textarea
+                                className="chat-input"
+                                placeholder="Escribe un mensaje aquí..."
+                                rows="1"
+                                value={inputText}
+                                onChange={(e) => setInputText(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSendMessage();
+                                  }
+                                }}
+                              />
+                              <Smile size={20} style={{ color: 'var(--text-tertiary)', cursor: 'pointer', marginLeft: '10px' }} />
+                            </div>
+                            <div className="action-btn send" onClick={handleSendMessage}>
+                              <Send size={20} />
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
