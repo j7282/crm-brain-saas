@@ -71,43 +71,54 @@ function App() {
     let interval;
     let pollCount = 0;
     const MAX_POLLS_BEFORE_RESET = 30; // 60 segundos sin QR = reintentar (Render es lento)
-    if (isOnboarding && onboardingStep === 2 && token) {
-      interval = setInterval(async () => {
-        try {
-          const res = await fetch(`${BACKEND_URL}/api/whatsapp/qr`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (!res.ok) throw new Error('Backend unreachabe');
+    
+    // Función de chequeo de estado para bypass
+    const checkStatus = async () => {
+      if (!token) return;
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/whatsapp/qr`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setWaQR(data.qr);
+        setWaStatus(data.status);
 
-          const data = await res.json();
-          setWaQR(data.qr);
-          setWaStatus(data.status);
-
-          if (data.status === 'connected') {
-            clearInterval(interval);
-            setTimeout(() => setOnboardingStep(3), 1500);
-            return;
+        if (data.status === 'connected') {
+          setWaQR(null);
+          if (isOnboarding) {
+            console.log('[WhatsApp] Auto-bypass onboarding: connected');
+            setIsOnboarding(false);
+            setActiveTab('inbox');
           }
-
-          // Si no hay QR Y no está conectando, contar para el reset
-          // Si está en 'connecting', darle tiempo extra
-          if (!data.qr && data.status !== 'connected' && data.status !== 'connecting') {
-            pollCount++;
-            if (pollCount >= MAX_POLLS_BEFORE_RESET) {
-              console.log('[WhatsApp] Auto-reset triggered after timeout');
-              pollCount = 0;
-              await fetch(`${BACKEND_URL}/api/whatsapp/reset`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
-              });
-            }
-          } else {
-            pollCount = 0;
-          }
-        } catch (err) {
-          console.error("Error polling QR:", err);
+          return true;
         }
-      }, 2000);
+        return false;
+      } catch (err) { return false; }
+    };
+
+    if (token) {
+      checkStatus();
+      interval = setInterval(async () => {
+        const connected = await checkStatus();
+        if (connected) {
+          clearInterval(interval);
+          return;
+        }
+
+        if (isOnboarding && onboardingStep === 2) {
+          // Lógica de reset si no hay QR
+          pollCount++;
+          if (pollCount >= MAX_POLLS_BEFORE_RESET) {
+            console.log('[WhatsApp] Auto-reset triggered');
+            pollCount = 0;
+            fetch(`${BACKEND_URL}/api/whatsapp/reset`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+          }
+        }
+      }, 3000);
     }
     return () => clearInterval(interval);
   }, [isOnboarding, onboardingStep, token]);
@@ -115,26 +126,33 @@ function App() {
   // Polling para Chats
   useEffect(() => {
     let interval;
-    if (token && activeTab === 'inbox') {
+    // Quitamos la restricción de activeTab === 'inbox' para que carguen en background
+    if (token) {
       const fetchChats = async () => {
         try {
           const res = await fetch(`${BACKEND_URL}/api/whatsapp/chats`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
+          if (!res.ok) return;
           const data = await res.json();
           if (Array.isArray(data)) {
             setChats(data);
             if (!selectedChatJid && data.length > 0) {
               setSelectedChatJid(data[0].jid);
             }
+            // Si hay chats reales, significa que estamos conectados
+            if (data.length > 0 && isOnboarding) {
+              setIsOnboarding(false);
+              setActiveTab('inbox');
+            }
           }
-        } catch (err) { console.error("Error fetching chats:", err); }
+        } catch (err) { }
       };
       fetchChats();
       interval = setInterval(fetchChats, 5000);
     }
     return () => clearInterval(interval);
-  }, [token, activeTab, selectedChatJid]);
+  }, [token, selectedChatJid, isOnboarding]);
 
   // Polling para Mensajes del Chat Seleccionado
   useEffect(() => {
