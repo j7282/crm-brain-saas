@@ -655,32 +655,39 @@ function App() {
                         {chats.length === 0 ? (
                           <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
                             <p>Sincronizando historial masivo...</p>
-                            <p style={{ fontSize: '0.8rem' }}>Esto puede tomar unos segundos.</p>
+                            <p style={{ fontSize: '0.8rem' }}>Darwin está absorbiendo tus chats sin gastar tokens.</p>
                           </div>
                         ) : (
-                          chats.map((chat) => (
-                            <div 
-                              key={chat.jid} 
-                              className={`chat-item ${selectedChatJid === chat.jid ? 'active' : ''}`}
-                              onClick={() => setSelectedChatJid(chat.jid)}
-                            >
-                              <div className="avatar">
-                                {chat.pushName?.substring(0, 2).toUpperCase() || 'WA'}
-                              </div>
-                              <div className="chat-info">
-                                <div className="chat-header">
-                                  <span className="contact-name">{chat.pushName || chat.jid.split('@')[0]}</span>
-                                  <span className="time">
-                                    {new Date(chat.lastTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                  </span>
+                          chats
+                            .slice(0, 50) // Solo renderizamos los primeros 50 para fluidez total
+                            .map((chat) => (
+                              <div 
+                                key={chat.jid} 
+                                className={`chat-item ${selectedChatJid === chat.jid ? 'active' : ''}`}
+                                onClick={() => setSelectedChatJid(chat.jid)}
+                              >
+                                <div className="avatar">
+                                  {chat.pushName?.substring(0, 2).toUpperCase() || 'WA'}
                                 </div>
-                                <div className="chat-preview-row">
-                                  <span className={`sentiment-badge bg-${chat.sentiment || 'yellow'}`}></span>
-                                  <p className="last-message" style={{ color: 'var(--text-primary)' }}>{chat.lastMessage || 'Sin mensajes'}</p>
+                                <div className="chat-info">
+                                  <div className="chat-header">
+                                    <span className="contact-name">{chat.pushName || chat.jid.split('@')[0]}</span>
+                                    <span className="time">
+                                      {new Date(chat.lastTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  </div>
+                                  <div className="chat-preview-row">
+                                    <span className={`sentiment-badge bg-${chat.sentiment || 'yellow'}`}></span>
+                                    <p className="last-message" style={{ color: 'var(--text-primary)' }}>{chat.lastMessage || 'Sin mensajes'}</p>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))
+                            ))
+                        )}
+                        {chats.length > 50 && (
+                          <div style={{ padding: '10px', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                            + {chats.length - 50} chats adicionales sincronizados
+                          </div>
                         )}
                       </div>
                     </div>
