@@ -15,6 +15,8 @@ const QRCode = require('qrcode');
 const pino = require('pino');
 const Datastore = require('@seald-io/nedb');
 const { scrapeUrl } = require('./services/scraper');
+const http = require('http');
+const { Server } = require('socket.io');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -46,12 +48,14 @@ const dbUpdate = (db, q, u, opt) => new Promise((res, rej) => db.update(q, u, op
 // Helper para logs neuronales
 async function addNeuronalLog(message, type = 'info', metadata = {}) {
     try {
-        await dbInsert(neuronalLogsDb, {
+        const log = {
             message,
             type,
             metadata,
             timestamp: new Date()
-        });
+        };
+        await dbInsert(neuronalLogsDb, log);
+        io.emit('neuronal-log', log); // Notificar a la UI en tiempo real
         console.log(`[NeuronalLog] [${type.toUpperCase()}] ${message}`);
     } catch (e) {
         console.error('Error guardando log neuronal:', e);
@@ -59,6 +63,13 @@ async function addNeuronalLog(message, type = 'info', metadata = {}) {
 }
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "*", // En producción deberías restringir esto
+        methods: ["GET", "POST"]
+    }
+});
 const port = process.env.PORT || 3000;
 
 // Configuración de middlewares
@@ -245,6 +256,7 @@ async function connectToWhatsApp(forceNew = false) {
             if (messagesToInsert.length > 0) {
                 try {
                     await dbInsert(messagesDb, messagesToInsert); // Bulk Insert de NeDB
+                    io.emit('history-sync-complete', { count: messagesToInsert.length });
                     console.log(`[WhatsApp] ✅ Bulk insert exitoso: ${messagesToInsert.length} mensajes.`);
                 } catch (err) {
                     console.error('[WhatsApp] Error en bulk insert:', err.message);
@@ -306,6 +318,10 @@ async function connectToWhatsApp(forceNew = false) {
                     } 
                 }, { upsert: true });
 
+                // NOTIFICAR AL DASHBOARD EN TIEMPO REAL
+                io.emit('new-message', msgData);
+                io.emit('chat-update', { jid: from, lastMessage: text, lastTimestamp: new Date() });
+
                 try {
                     const brains = await dbFind(brainsDb, {});
                     const activeBrain = brains[0] || { nombre: 'Cerebro Genérico', catalogo: [], shortcuts: {}, nicho: 'Ventas' };
@@ -362,6 +378,17 @@ async function connectToWhatsApp(forceNew = false) {
                                 sentiment: result.sentiment
                             } 
                         });
+
+                        const aiMsgData = {
+                            jid: from,
+                            text: result.respuestaTexto,
+                            role: 'ai',
+                            timestamp: new Date(),
+                            sentiment: result.sentiment,
+                            isVoice: useVoice
+                        };
+                        io.emit('new-message', aiMsgData);
+                        io.emit('chat-update', { jid: from, lastMessage: result.respuestaTexto, lastTimestamp: new Date(), sentiment: result.sentiment });
 
                         console.log(`[WhatsApp] ✅ Mensaje procesado exitosamente para ${from}`);
                     } else {
@@ -846,8 +873,8 @@ app.post('/webhook/whatsapp', async (req, res) => {
     }
 });
 
-app.listen(port, () => {
-    console.log(`[Cerebro Central] Motor Backend en puerto ${port}`);
+server.listen(port, () => {
+    console.log(`[Cerebro Central] Motor Backend con WebSockets en puerto ${port}`);
 });
 
 // Error Handler Global
