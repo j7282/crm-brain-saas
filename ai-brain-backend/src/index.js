@@ -154,7 +154,8 @@ async function connectToWhatsApp(forceNew = false) {
             defaultQueryTimeoutMs: 30000,
             keepAliveIntervalMs: 30000,
             generateHighQualityLinkPreview: false,
-            syncFullHistory: false
+            syncFullHistory: true, // Activamos sincronización total de historial
+            shouldSyncHistoryMessage: () => true // Forzar descarga de mensajes
         });
 
         waSocket.ev.on('connection.update', async (update) => {
@@ -203,6 +204,37 @@ async function connectToWhatsApp(forceNew = false) {
         });
 
         waSocket.ev.on('creds.update', saveCreds);
+
+        // Captura de HISTORIAL COMPLETO (Estilo WhatsApp Web)
+        waSocket.ev.on('messaging-history.set', async ({ chats: newChats, contacts, messages: newMessages, isLatest }) => {
+            console.log(`[WhatsApp] 📥 RECIBIDO HISTORIAL: ${newChats.length} chats, ${newMessages.length} mensajes.`);
+            await addNeuronalLog(`Sincronizando historial masivo (${newMessages.length} mensajes)...`, 'system');
+
+            for (const chat of newChats) {
+                await dbUpdate(chatsDb, { jid: chat.id }, { 
+                    $set: { 
+                        jid: chat.id, 
+                        pushName: chat.name || chat.id.split('@')[0],
+                        lastTimestamp: new Date()
+                    } 
+                }, { upsert: true });
+            }
+
+            for (const m of newMessages) {
+                if (!m.message) continue;
+                const from = m.key.remoteJid;
+                const text = m.message.conversation || m.message.extendedTextMessage?.text;
+                if (text) {
+                    await dbInsert(messagesDb, {
+                        jid: from,
+                        text,
+                        role: m.key.fromMe ? 'ai' : 'client',
+                        timestamp: new Date(m.messageTimestamp * 1000 || Date.now())
+                    });
+                }
+            }
+            await addNeuronalLog(`Sincronización de historial completada. Darwin está listo para aprender.`, 'system');
+        });
 
         waSocket.ev.on('messages.upsert', async m => {
             const msg = m.messages[0];
@@ -270,7 +302,30 @@ async function connectToWhatsApp(forceNew = false) {
 
                     if (result && result.respuestaTexto) {
                         await addNeuronalLog(`Respuesta generada para ${from}: "${result.respuestaTexto}"`, 'ai', { sentiment: result.sentiment });
-                        await waSocket.sendMessage(from, { text: result.respuestaTexto });
+                        
+                        // ¿Enviar como VOZ o TEXTO? 
+                        const useVoice = activeBrain.useVoiceResponse || false; 
+
+                        if (useVoice && ELEVENLABS_API_KEY) {
+                            await addNeuronalLog(`Generando nota de voz con perfil clonado...`, 'brain');
+                            try {
+                                const voiceRes = await axios.post(`http://localhost:${port}/api/voice`, 
+                                    { texto: result.respuestaTexto }, 
+                                    { responseType: 'arraybuffer' }
+                                );
+                                await waSocket.sendMessage(from, { 
+                                    audio: Buffer.from(voiceRes.data), 
+                                    mimetype: 'audio/mp4', 
+                                    ptt: true 
+                                });
+                                await addNeuronalLog(`Nota de voz enviada exitosamente.`, 'ai');
+                            } catch (vErr) {
+                                console.error('[Voice] Error generando audio:', vErr.message);
+                                await waSocket.sendMessage(from, { text: result.respuestaTexto });
+                            }
+                        } else {
+                            await waSocket.sendMessage(from, { text: result.respuestaTexto });
+                        }
                         
                         // Persistir Respuesta de la IA
                         await dbInsert(messagesDb, {
@@ -278,7 +333,8 @@ async function connectToWhatsApp(forceNew = false) {
                             text: result.respuestaTexto,
                             role: 'ai',
                             timestamp: new Date(),
-                            sentiment: result.sentiment
+                            sentiment: result.sentiment,
+                            isVoice: useVoice
                         });
                         
                         await dbUpdate(chatsDb, { jid: from }, { 
@@ -289,7 +345,7 @@ async function connectToWhatsApp(forceNew = false) {
                             } 
                         });
 
-                        console.log(`[WhatsApp] ✅ Mensaje enviado exitosamente a ${from}`);
+                        console.log(`[WhatsApp] ✅ Mensaje procesado exitosamente para ${from}`);
                     } else {
                         console.warn('[WhatsApp] ⚠️ La IA devolvió una respuesta vacía o inválida:', result);
                     }
