@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { io } from 'socket.io-client'
 import './App.css'
 
 const BACKEND_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -18,6 +19,8 @@ import {
   Smile,
   Send
 } from 'lucide-react'
+
+const socket = io(BACKEND_URL);
 
 function App() {
   const [isOnboarding, setIsOnboarding] = useState(localStorage.getItem('isOnboarding') !== 'false');
@@ -203,7 +206,37 @@ function App() {
     return () => clearInterval(interval);
   }, [token, activeTab]);
 
-  // Polling para Mensajes del Chat Seleccionado
+  // Conexión por WebSockets para Tiempo Real
+  useEffect(() => {
+    socket.on('connect', () => console.log('[Socket] Conectado al backend'));
+    
+    socket.on('new-message', (newMsg) => {
+      console.log('[Socket] Nuevo mensaje:', newMsg);
+      // Solo añadir si es del chat seleccionado
+      if (selectedChatJid === newMsg.jid) {
+        setRealMessages(prev => [...prev, newMsg]);
+      }
+    });
+
+    socket.on('chat-update', (update) => {
+      console.log('[Socket] Actualización de chat:', update);
+      setChats(prev => prev.map(c => 
+        c.jid === update.jid ? { ...c, ...update } : c
+      ));
+    });
+
+    socket.on('neuronal-log', (log) => {
+      setNeuronalLogs(prev => [log, ...prev].slice(0, 50));
+    });
+
+    return () => {
+      socket.off('new-message');
+      socket.off('chat-update');
+      socket.off('neuronal-log');
+    };
+  }, [selectedChatJid]);
+
+  // Polling para Mensajes del Chat Seleccionado (Como Respaldo)
   useEffect(() => {
     let interval;
     if (token && selectedChatJid) {
@@ -214,10 +247,10 @@ function App() {
           });
           const data = await res.json();
           if (Array.isArray(data)) setRealMessages(data);
-        } catch (err) { console.error("Error fetching messages:", err); }
+        } catch (err) { }
       };
       fetchMessages();
-      interval = setInterval(fetchMessages, 3000);
+      interval = setInterval(fetchMessages, 10000); // Polling mucho más lento (respaldo)
     }
     return () => clearInterval(interval);
   }, [token, selectedChatJid]);
