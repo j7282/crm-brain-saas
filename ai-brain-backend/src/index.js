@@ -205,27 +205,35 @@ async function connectToWhatsApp(forceNew = false) {
 
         waSocket.ev.on('creds.update', saveCreds);
 
-        // Captura de HISTORIAL COMPLETO (Estilo WhatsApp Web)
+        // Captura de HISTORIAL COMPLETO (Estilo WhatsApp Web) - OPTIMIZADO
         waSocket.ev.on('messaging-history.set', async ({ chats: newChats, contacts, messages: newMessages, isLatest }) => {
             console.log(`[WhatsApp] 📥 RECIBIDO HISTORIAL: ${newChats.length} chats, ${newMessages.length} mensajes.`);
-            await addNeuronalLog(`Sincronizando historial masivo (${newMessages.length} mensajes)...`, 'system');
+            await addNeuronalLog(`Sincronizando historial masivo...`, 'system');
 
-            for (const chat of newChats) {
-                await dbUpdate(chatsDb, { jid: chat.id }, { 
+            // 1. Optimizar Chats (Batching)
+            const chatPromises = newChats.map(chat => 
+                dbUpdate(chatsDb, { jid: chat.id }, { 
                     $set: { 
                         jid: chat.id, 
                         pushName: chat.name || chat.id.split('@')[0],
                         lastTimestamp: new Date()
                     } 
-                }, { upsert: true });
-            }
+                }, { upsert: true })
+            );
+            await Promise.all(chatPromises.slice(0, 100)); // Procesar primeros 100 chats rápido
 
-            for (const m of newMessages) {
+            // 2. Optimizar Mensajes (Bulk Insert)
+            const messagesToInsert = [];
+            // Limitamos a los últimos N mensajes totales para no colapsar NeDB en un solo insert
+            const historyLimit = 1000; 
+            const recentMessages = newMessages.slice(-historyLimit);
+
+            for (const m of recentMessages) {
                 if (!m.message) continue;
                 const from = m.key.remoteJid;
                 const text = m.message.conversation || m.message.extendedTextMessage?.text;
                 if (text) {
-                    await dbInsert(messagesDb, {
+                    messagesToInsert.push({
                         jid: from,
                         text,
                         role: m.key.fromMe ? 'ai' : 'client',
@@ -233,7 +241,17 @@ async function connectToWhatsApp(forceNew = false) {
                     });
                 }
             }
-            await addNeuronalLog(`Sincronización de historial completada. Darwin está listo para aprender.`, 'system');
+
+            if (messagesToInsert.length > 0) {
+                try {
+                    await dbInsert(messagesDb, messagesToInsert); // Bulk Insert de NeDB
+                    console.log(`[WhatsApp] ✅ Bulk insert exitoso: ${messagesToInsert.length} mensajes.`);
+                } catch (err) {
+                    console.error('[WhatsApp] Error en bulk insert:', err.message);
+                }
+            }
+
+            await addNeuronalLog(`Sincronización de historial completada (${messagesToInsert.length} mensajes). Darwin está listo.`, 'system');
         });
 
         waSocket.ev.on('messages.upsert', async m => {
