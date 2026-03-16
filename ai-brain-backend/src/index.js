@@ -232,6 +232,10 @@ async function connectToWhatsApp(forceNew = false) {
                 }, { upsert: true })
             );
             await Promise.all(chatPromises.slice(0, 100)); // Procesar primeros 100 chats rápido
+            
+            // Emitir los chats sincronizados al frontend de inmediato
+            const allChats = await dbFind(chatsDb, {});
+            io.emit('all-chats', allChats); 
 
             // 2. Optimizar Mensajes (Bulk Insert)
             const messagesToInsert = [];
