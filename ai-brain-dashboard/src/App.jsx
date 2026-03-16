@@ -735,21 +735,48 @@ function App() {
                 )}
 
                 {activeTab === 'kanban' && (
-                  <div className="kanban-layout" style={{ padding: 'var(--spacing-xl)', flex: 1, overflowY: 'auto' }}>
-                    <div style={{ marginBottom: 'var(--spacing-xl)' }}>
-                      <h2 style={{ fontSize: '1.8rem', marginBottom: '8px' }}>Pipeline de Ventas Automático</h2>
+                  <div className="kanban-layout" style={{ padding: '40px', flex: 1, overflowY: 'auto' }}>
+                    <div style={{ marginBottom: '32px' }}>
+                      <h2 style={{ fontSize: '2rem', marginBottom: '8px' }}>Pipeline de Ventas Automático</h2>
                       <p style={{ color: 'var(--text-secondary)' }}>La IA mueve a los clientes entre columnas según el progreso del cierre.</p>
                     </div>
 
-                    <div style={{ display: 'flex', gap: 'var(--spacing-lg)', flex: 1, overflowX: 'auto', paddingBottom: '20px' }}>
-                      <div className="kanban-column" style={{ minWidth: '300px', backgroundColor: 'var(--bg-secondary)', borderRadius: '12px', padding: '16px' }}>
-                        <h3 style={{ fontSize: '1.1rem', marginBottom: '16px' }}>Nuevos Prospectos</h3>
-                        <div className="kanban-card" style={{ backgroundColor: 'var(--bg-primary)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '12px' }}>
-                          <strong>+52 55 1122 3344</strong>
-                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>"Info de la pipa para Tlalpan urg..."</p>
+                    <div className="kanban-board">
+                      {[
+                        { title: 'Nuevos Prospectos', count: 3, color: 'var(--accent-blue)' },
+                        { title: 'En Calificación', count: 2, color: 'var(--accent-purple)' },
+                        { title: 'Negociación', count: 5, color: 'var(--accent-blue)' },
+                        { title: 'Cierre Ganado', count: 12, color: 'var(--wa-green)' }
+                      ].map((col, idx) => (
+                        <div key={idx} className="kanban-column">
+                          <div className="kanban-column-header">
+                            <span className="kanban-column-title" style={{ color: col.color }}>{col.title}</span>
+                            <span className="kanban-count">{col.count}</span>
+                          </div>
+                          
+                          {idx === 0 && (
+                            <div className="kanban-card">
+                              <span className="kanban-card-title">+52 55 1122 3344</span>
+                              <p className="kanban-card-subtitle">"Info de la pipa para Tlalpan urg..."</p>
+                              <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span className="sentiment-badge bg-red" title="Urgente"></span>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Hace 5m</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {idx === 2 && (
+                            <div className="kanban-card" style={{ borderLeft: '3px solid var(--accent-purple)' }}>
+                              <span className="kanban-card-title">Distribuidora Poniente</span>
+                              <p className="kanban-card-subtitle">Enviando cotización de 5000L...</p>
+                              <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span className="sentiment-badge bg-green"></span>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Hace 1h</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      {/* Repetir estructura para otras columnas si es necesario, o mantener simple */}
+                      ))}
                     </div>
                   </div>
                 )}
@@ -874,16 +901,101 @@ function App() {
                 )}
 
                 {activeTab === 'voice' && (
-                  <div className="voice-layout" style={{ padding: 'var(--spacing-xl)', flex: 1, overflowY: 'auto' }}>
-                    <h2>Clonador de Perfil Vocal</h2>
-                    <p style={{ color: 'var(--text-secondary)' }}>Sube muestras de tu voz para que la IA responda por audio.</p>
+                  <div className="voice-layout" style={{ padding: '40px', flex: 1, overflowY: 'auto' }}>
+                    <div style={{ marginBottom: '32px' }}>
+                      <h2 style={{ fontSize: '2rem', marginBottom: '8px' }}>Clonador de Perfil Vocal</h2>
+                      <p style={{ color: 'var(--text-secondary)' }}>Entrena a tu IA con muestras de tu propia voz para respuestas humanas.</p>
+                    </div>
+
+                    <div className="voice-grid">
+                      <div className="premium-card">
+                        <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <Mic size={20} color="var(--accent-blue)" /> Cargar Nueva Muestra
+                        </h3>
+                        <div className="upload-zone">
+                          <div style={{ fontSize: '2rem', marginBottom: '12px' }}>☁️</div>
+                          <p style={{ fontWeight: 600 }}>Cargar audio</p>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>Arrastra o selecciona un archivo (Max 10MB)</p>
+                        </div>
+                      </div>
+
+                      <div className="premium-card">
+                        <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <ShieldAlert size={20} color="var(--accent-purple)" /> Estado de ElevenLabs
+                        </h3>
+                        <div style={{ padding: '16px', backgroundColor: 'var(--bg-primary)', borderRadius: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                            <span>Sincronización</span>
+                            <span style={{ color: 'var(--wa-green)', fontWeight: 600 }}>Activa</span>
+                          </div>
+                          <div style={{ width: '100%', height: '4px', backgroundColor: '#eee', borderRadius: '2px' }}>
+                            <div style={{ width: '85%', height: '100%', backgroundColor: 'var(--accent-purple)', borderRadius: '2px' }}></div>
+                          </div>
+                          <p style={{ fontSize: '0.75rem', marginTop: '12px', color: 'var(--text-secondary)' }}>Voz actual: "Vendedor Elite - Optimizado"</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: '40px' }}>
+                      <h3 style={{ marginBottom: '20px' }}>Muestras en la Base de Conocimiento</h3>
+                      {[1, 2].map((i) => (
+                        <div key={i} className="premium-card" style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <div style={{ width: '40px', height: '40px', backgroundColor: 'var(--bg-navy)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                              ▶️
+                            </div>
+                            <div>
+                              <p style={{ fontWeight: 600, margin: 0 }}>Muestra_Referencia_00{i}.mp3</p>
+                              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>Cargado el 15 Mar 2026</p>
+                            </div>
+                          </div>
+                          <button className="secondary-btn" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>Eliminar</button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
                 {activeTab === 'settings' && (
-                  <div className="settings-layout" style={{ padding: 'var(--spacing-xl)', flex: 1, overflowY: 'auto' }}>
-                    <h2>Supervisión</h2>
-                    <p style={{ color: 'var(--text-secondary)' }}>Control de acceso y alertas de WhatsApp.</p>
+                  <div className="settings-layout" style={{ padding: '40px', flex: 1, overflowY: 'auto' }}>
+                    <div style={{ marginBottom: '32px' }}>
+                      <h2 style={{ fontSize: '2rem', marginBottom: '8px' }}>Supervisión del Cerebro</h2>
+                      <p style={{ color: 'var(--text-secondary)' }}>Métricas de rendimiento y control de calidad de la IA en tiempo real.</p>
+                    </div>
+
+                    <div className="metric-grid">
+                      <div className="metric-card">
+                        <span className="metric-label">Sentiment Score</span>
+                        <span className="metric-value">94%</span>
+                      </div>
+                      <div className="metric-card">
+                        <span className="metric-label">Tasa de Cierre</span>
+                        <span className="metric-value">22.5%</span>
+                      </div>
+                      <div className="metric-card">
+                        <span className="metric-label">Intervenciones</span>
+                        <span className="metric-value">4</span>
+                      </div>
+                      <div className="metric-card" style={{ background: 'var(--accent-blue)' }}>
+                        <span className="metric-label">Estado</span>
+                        <span className="metric-value" style={{ fontSize: '1.2rem' }}>OPTIMIZADO</span>
+                      </div>
+                    </div>
+
+                    <div className="premium-card">
+                      <h3 style={{ marginBottom: '20px' }}>Log de Eventos Neuronales</h3>
+                      <div style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                        <div style={{ padding: '10px 0', borderBottom: '1px solid var(--border-color)', color: 'var(--wa-green)' }}>
+                          [22:45] IA: Respuesta generada con éxito (Lead: Carlos Ruiz)
+                        </div>
+                        <div style={{ padding: '10px 0', borderBottom: '1px solid var(--border-color)', color: 'var(--accent-purple)' }}>
+                          [22:40] SISTEMA: Analizando audio de 30s... Transcripción completada.
+                        </div>
+                        <div style={{ padding: '10px 0', borderBottom: '1px solid var(--border-color)', color: 'var(--sentiment-red)' }}>
+                          [22:38] ALERTA: Sentiment negativo detectado en Chat #241.
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </main>
