@@ -56,6 +56,7 @@ function App() {
   const [chats, setChats] = useState([]);
   const [selectedChatJid, setSelectedChatJid] = useState(null);
   const [realMessages, setRealMessages] = useState([]);
+  const [neuronalLogs, setNeuronalLogs] = useState([]);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -153,6 +154,25 @@ function App() {
     }
     return () => clearInterval(interval);
   }, [token, selectedChatJid, isOnboarding]);
+
+  // Polling para Logs Neuronales
+  useEffect(() => {
+    let interval;
+    if (token && activeTab === 'settings') {
+      const fetchLogs = async () => {
+        try {
+          const res = await fetch(`${BACKEND_URL}/api/neuronal-logs`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
+          if (Array.isArray(data)) setNeuronalLogs(data);
+        } catch (err) { }
+      };
+      fetchLogs();
+      interval = setInterval(fetchLogs, 4000);
+    }
+    return () => clearInterval(interval);
+  }, [token, activeTab]);
 
   // Polling para Mensajes del Chat Seleccionado
   useEffect(() => {
@@ -997,17 +1017,25 @@ function App() {
                     </div>
 
                     <div className="premium-card">
-                      <h3 style={{ marginBottom: '20px' }}>Log de Eventos Neuronales</h3>
-                      <div style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
-                        <div style={{ padding: '10px 0', borderBottom: '1px solid var(--border-color)', color: 'var(--wa-green)' }}>
-                          [22:45] IA: Respuesta generada con éxito (Lead: Carlos Ruiz)
-                        </div>
-                        <div style={{ padding: '10px 0', borderBottom: '1px solid var(--border-color)', color: 'var(--accent-purple)' }}>
-                          [22:40] SISTEMA: Analizando audio de 30s... Transcripción completada.
-                        </div>
-                        <div style={{ padding: '10px 0', borderBottom: '1px solid var(--border-color)', color: 'var(--sentiment-red)' }}>
-                          [22:38] ALERTA: Sentiment negativo detectado en Chat #241.
-                        </div>
+                      <h3 style={{ marginBottom: '20px' }}>Log de Eventos Neuronales (En Vivo)</h3>
+                      <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', maxHeight: '400px', overflowY: 'auto' }}>
+                        {neuronalLogs.length === 0 ? (
+                          <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                            Esperando actividad neuronal...
+                          </div>
+                        ) : (
+                          neuronalLogs.map((log, idx) => (
+                            <div key={idx} style={{ 
+                              padding: '10px 0', 
+                              borderBottom: '1px solid var(--border-color)', 
+                              color: log.type === 'ai' ? 'var(--wa-green)' : 
+                                     log.type === 'brain' ? 'var(--accent-purple)' : 
+                                     log.type === 'system' ? 'var(--accent-blue)' : 'var(--text-secondary)'
+                            }}>
+                              [{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}] {log.message}
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
                   </div>
