@@ -70,6 +70,14 @@ const io = new Server(server, {
         methods: ["GET", "POST"]
     }
 });
+
+io.on('connection', async (socket) => {
+    console.log(`[Socket] Cliente conectado: ${socket.id}`);
+    // Enviar chats actuales al conectar
+    const allChats = await dbFind(chatsDb, {});
+    socket.emit('all-chats', allChats);
+});
+
 const port = process.env.PORT || 3000;
 
 // Configuración de middlewares
