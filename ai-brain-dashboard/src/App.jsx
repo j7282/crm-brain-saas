@@ -229,10 +229,16 @@ function App() {
       setNeuronalLogs(prev => [log, ...prev].slice(0, 50));
     });
 
+    socket.on('all-chats', (allChats) => {
+      console.log('[Socket] Todos los chats recibidos:', allChats.length);
+      setChats(allChats);
+    });
+
     return () => {
       socket.off('new-message');
       socket.off('chat-update');
       socket.off('neuronal-log');
+      socket.off('all-chats');
     };
   }, [selectedChatJid]);
 
