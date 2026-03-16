@@ -42,6 +42,13 @@ function App() {
   const [lastQuery, setLastQuery] = useState('');
   const [historyMonths, setHistoryMonths] = useState('3 Meses');
   const [mirrorMode, setMirrorMode] = useState(true);
+  const [inboxFilterStatus, setInboxFilterStatus] = useState('Por resolver'); // 'Por resolver', 'Resueltos', 'Todos'
+  const [inboxFilterAssignee, setInboxFilterAssignee] = useState('all'); // 'all', 'me', 'ai'
+  const [personalityWhatsApp, setPersonalityWhatsApp] = useState(true);
+  const [personalityAggressiveness, setPersonalityAggressiveness] = useState(5);
+  const [personalityForbidLinks, setPersonalityForbidLinks] = useState(false);
+  const [isScraping, setIsScraping] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -97,6 +104,24 @@ function App() {
     }
     return () => clearInterval(interval);
   }, [isOnboarding, onboardingStep, token]);
+
+  useEffect(() => {
+    if (activeBrainId && token) {
+      fetch(`${BACKEND_URL}/api/brains/${activeBrainId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.personalityTraits) {
+          setPersonalityWhatsApp(data.personalityTraits.isWhatsAppStyle);
+          setPersonalityAggressiveness(data.personalityTraits.aggressivenessLevel);
+          setPersonalityForbidLinks(data.personalityTraits.forbidLongLinks);
+        }
+        if (data.name) setBrainName(data.name);
+      })
+      .catch(err => console.error("Error fetching brain details:", err));
+    }
+  }, [activeBrainId, token]);
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || isTyping) return;
@@ -476,54 +501,57 @@ function App() {
             <>
               {isInterventionMode && renderInterventionModal()}
               {/* Sidebar */}
-              <aside className="sidebar">
-                <div className="sidebar-header">
+              <aside className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+                <div className="sidebar-header" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
                   <div className="logo-icon grow">🧠</div>
-                  <div className="logo-text">ANTIGRAVITY</div>
+                  {!isSidebarCollapsed && <div className="logo-text">ANTIGRAVITY</div>}
                 </div>
 
                 <div className="account-selector">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div className="status-dot green"></div>
-                    <div>
-                      <div className="label">Cerebro Activo</div>
-                      <div className="value">{brainName || "Cerebro Central"}</div>
-                    </div>
+                    {!isSidebarCollapsed && (
+                      <div>
+                        <div className="label">Cerebro Activo</div>
+                        <div className="value">{brainName || "Cerebro Central"}</div>
+                      </div>
+                    )}
                   </div>
-                  <ChevronDown size={16} />
+                  {!isSidebarCollapsed && <ChevronDown size={16} />}
                 </div>
 
                 <nav className="nav-menu">
-                  <div className={`nav-item ${activeTab === 'inbox' ? 'active' : ''}`} onClick={() => setActiveTab('inbox')}>
-                    <MessageSquareText size={18} />
-                    <span>Bandeja de Entrada</span>
+                  <div className={`nav-item ${activeTab === 'inbox' ? 'active' : ''}`} onClick={() => setActiveTab('inbox')} title="Bandeja de Entrada">
+                    <MessageSquareText size={20} />
+                    {!isSidebarCollapsed && <span>Bandeja de Entrada</span>}
                   </div>
-                  <div className={`nav-item ${activeTab === 'kanban' ? 'active' : ''}`} onClick={() => setActiveTab('kanban')}>
-                    <LineChart size={18} />
-                    <span>Pipeline Kanban</span>
+                  <div className={`nav-item ${activeTab === 'kanban' ? 'active' : ''}`} onClick={() => setActiveTab('kanban')} title="Pipeline Kanban">
+                    <LineChart size={20} />
+                    {!isSidebarCollapsed && <span>Pipeline Kanban</span>}
                   </div>
-                  <div className={`nav-item ${activeTab === 'lab' ? 'active' : ''}`} onClick={() => setActiveTab('lab')}>
-                    <Cpu size={18} />
-                    <span>Laboratorio Neuronal</span>
+                  <div className={`nav-item ${activeTab === 'lab' ? 'active' : ''}`} onClick={() => setActiveTab('lab')} title="Laboratorio Neuronal">
+                    <Cpu size={20} />
+                    {!isSidebarCollapsed && <span>Laboratorio Neuronal</span>}
                   </div>
-                  <div className={`nav-item ${activeTab === 'voice' ? 'active' : ''}`} onClick={() => setActiveTab('voice')}>
-                    <Mic size={18} />
-                    <span>Clonador de Voz</span>
+                  <div className={`nav-item ${activeTab === 'voice' ? 'active' : ''}`} onClick={() => setActiveTab('voice')} title="Clonador de Voz">
+                    <Mic size={20} />
+                    {!isSidebarCollapsed && <span>Clonador de Voz</span>}
                   </div>
-                  <div className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
-                    <ShieldAlert size={18} />
-                    <span>Supervisión</span>
+                  <div className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')} title="Supervisión">
+                    <ShieldAlert size={20} />
+                    {!isSidebarCollapsed && <span>Supervisión</span>}
                   </div>
                 </nav>
 
                 <div style={{ marginTop: 'auto', padding: '16px' }}>
-                  <button className="secondary-btn" style={{ width: '100%' }} onClick={() => {
+                  <div className="nav-item" onClick={() => {
                     localStorage.removeItem('token');
                     setToken(null);
                     setUser(null);
-                  }}>
-                    Cerrar Sesión
-                  </button>
+                  }} title="Cerrar Sesión">
+                    <Bot size={20} />
+                    {!isSidebarCollapsed && <span>Cerrar Sesión</span>}
+                  </div>
                 </div>
               </aside>
               {/* Main Content (Keep original routing logic here or similar) */}
@@ -532,10 +560,22 @@ function App() {
                   <div className="inbox-layout">
                     {/* Chat List (Sidebar of Inbox) */}
                     <div className="chat-list">
+                      <div className="inbox-header-tabs">
+                        <div className={`inbox-tab ${inboxFilterStatus === 'Por resolver' ? 'active' : ''}`} onClick={() => setInboxFilterStatus('Por resolver')}>Por resolver</div>
+                        <div className={`inbox-tab ${inboxFilterStatus === 'Resueltos' ? 'active' : ''}`} onClick={() => setInboxFilterStatus('Resueltos')}>Resueltos</div>
+                        <div className={`inbox-tab ${inboxFilterStatus === 'Todos' ? 'active' : ''}`} onClick={() => setInboxFilterStatus('Todos')}>Todos</div>
+                      </div>
+
+                      <div className="inbox-assignee-filters">
+                        <div className={`filter-chip ${inboxFilterAssignee === 'all' ? 'active' : ''}`} onClick={() => setInboxFilterAssignee('all')}>Todos</div>
+                        <div className={`filter-chip ${inboxFilterAssignee === 'me' ? 'active' : ''}`} onClick={() => setInboxFilterAssignee('me')}>👤 Míos</div>
+                        <div className={`filter-chip ${inboxFilterAssignee === 'ai' ? 'active' : ''}`} onClick={() => setInboxFilterAssignee('ai')}>🤖 De la IA</div>
+                      </div>
+
                       <div className="search-container">
                         <div className="search-bar">
-                          <span style={{ color: 'var(--text-secondary)' }}>🔍</span>
-                          <input type="text" className="search-input" placeholder="Busca un chat o contacto" />
+                          <MessageSquareText size={16} style={{ color: 'var(--text-tertiary)' }} />
+                          <input type="text" className="search-input" placeholder="Referencia, nombre o teléfono..." />
                         </div>
                       </div>
 
@@ -664,36 +704,27 @@ function App() {
 
                       <div className="input-area">
                         <div className="action-btn">
-                          <span style={{ fontSize: '1.2rem' }}>😊</span>
+                          <Plus size={20} />
                         </div>
-                        <div className="action-btn">
-                          <span style={{ fontSize: '1.2rem', transform: 'rotate(-45deg)', display: 'inline-block' }}>📎</span>
-                        </div>
-
                         <div className="chat-input-wrapper">
-                          <input
-                            type="text"
+                          <textarea
                             className="chat-input"
-                            placeholder="Escribe un mensaje"
-                            value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                            disabled={isTyping}
+                            placeholder="Escribe un mensaje aquí..."
+                            rows="1"
+                            value={currentMessage}
+                            onChange={(e) => setCurrentMessage(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage();
+                              }
+                            }}
                           />
+                          <Smile size={20} style={{ color: 'var(--text-tertiary)', cursor: 'pointer', marginLeft: '10px' }} />
                         </div>
-
-                        {inputText.trim() ? (
-                          <div className="action-btn send" onClick={handleSendMessage} style={{ cursor: isTyping ? 'not-allowed' : 'pointer' }}>
-                            <span style={{ fontSize: '1.2rem' }}>➤</span>
-                          </div>
-                        ) : (
-                          <div className="action-btn" style={{ position: 'relative' }}>
-                            <span style={{ fontSize: '1.2rem' }}>🎙️</span>
-                            <div style={{ position: 'absolute', top: -0, right: -0, width: '12px', height: '12px', backgroundColor: 'var(--accent-purple)', borderRadius: '50%', border: '2px solid var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <span style={{ fontSize: '6px', color: 'white' }}>✨</span>
-                            </div>
-                          </div>
-                        )}
+                        <div className="action-btn send" onClick={handleSendMessage}>
+                          <Send size={20} />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -721,9 +752,120 @@ function App() {
 
                 {activeTab === 'lab' && (
                   <div className="lab-layout" style={{ padding: 'var(--spacing-xl)', flex: 1, overflowY: 'auto' }}>
-                    <h2>Laboratorio Neuronal</h2>
-                    <p style={{ color: 'var(--text-secondary)' }}>Configura las reglas de aprendizaje de {brainName}.</p>
-                    {/* ... Contenido del laboratorio ... */}
+                    <h2 style={{ fontSize: '1.8rem', marginBottom: '8px' }}>Laboratorio Neuronal</h2>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '32px' }}>Configura las reglas de aprendizaje y comportamiento emocional de {brainName}.</p>
+
+                    <div className="settings-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '24px' }}>
+                      <h3 style={{ marginBottom: '16px', color: 'var(--text-primary)' }}>🧠 Rasgos de Personalidad (Traits)</h3>
+
+                      <div className="setting-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)' }}>
+                        <div>
+                          <strong style={{ color: 'var(--text-primary)' }}>Estilo WhatsApp (Recomendado)</strong>
+                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Obliga a la IA a ser casual, usar emojis cortos y evitar lenguaje robótico o exigir correos electrónicos.</p>
+                        </div>
+                        <label className="switch">
+                          <input type="checkbox" checked={personalityWhatsApp} onChange={(e) => setPersonalityWhatsApp(e.target.checked)} />
+                          <span className="slider round"></span>
+                        </label>
+                      </div>
+
+                      <div className="setting-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)' }}>
+                        <div>
+                          <strong style={{ color: 'var(--text-primary)' }}>Prohibir Enviar Links</strong>
+                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Evita que la IA invente o envíe URLs largas que pueden romper la experiencia de chat móvil.</p>
+                        </div>
+                        <label className="switch">
+                          <input type="checkbox" checked={personalityForbidLinks} onChange={(e) => setPersonalityForbidLinks(e.target.checked)} />
+                          <span className="slider round"></span>
+                        </label>
+                      </div>
+
+                      <div className="setting-item">
+                        <div style={{ marginBottom: '8px' }}>
+                          <strong style={{ color: 'var(--text-primary)' }}>Agresividad de Cierre: <span style={{ color: 'var(--wa-green)' }}>{personalityAggressiveness}</span> / 10</strong>
+                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Nivel 1 es consultivo y paciente. Nivel 10 es un agente que empuja activamente al pago inmediato.</p>
+                        </div>
+                        <input type="range" min="1" max="10" value={personalityAggressiveness} onChange={(e) => setPersonalityAggressiveness(parseInt(e.target.value))} style={{ width: '100%', accentColor: 'var(--wa-green)' }} />
+                      </div>
+                    </div>
+
+                    <div className="settings-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '24px' }}>
+                      <h3 style={{ marginBottom: '16px', color: 'var(--text-primary)' }}>🌐 Alimentar con URL (Darwin Reader)</h3>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>Pega el link de tu catálogo, blog o servicios para que la IA aprenda los detalles automáticamente.</p>
+                      
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <input 
+                          type="text" 
+                          className="input-field" 
+                          placeholder="https://ejemplo.com/servicios" 
+                          value={knowledgeUrl}
+                          onChange={(e) => setKnowledgeUrl(e.target.value)}
+                          style={{ flex: 1 }}
+                        />
+                        <button 
+                          className="secondary-btn" 
+                          disabled={!knowledgeUrl || isScraping}
+                          style={{ minWidth: '100px' }}
+                          onClick={async () => {
+                            if (!activeBrainId) return alert('Debes seleccionar un cerebro primero.');
+                            setIsScraping(true);
+                            try {
+                              const res = await fetch(`${BACKEND_URL}/api/knowledge/url`, {
+                                method: 'POST',
+                                headers: { 
+                                  'Content-Type': 'application/json',
+                                  'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify({ url: knowledgeUrl, brainId: activeBrainId })
+                              });
+                              const data = await res.json();
+                              if (data.success) {
+                                alert('¡Contenido de la URL absorbido con éxito!');
+                                setKnowledgeUrl('');
+                              } else {
+                                alert('Error: ' + data.error);
+                              }
+                            } catch (e) {
+                              alert('Error de conexión al leer el link.');
+                            } finally {
+                              setIsScraping(false);
+                            }
+                          }}
+                        >
+                          {isScraping ? 'Leyendo...' : 'Alimentar'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button className="primary-btn" onClick={async () => {
+                      if (!activeBrainId) return alert('Selecciona un cerebro primero.');
+                      try {
+                        const res = await fetch(`${BACKEND_URL}/api/brains/${activeBrainId}/traits`, {
+                          method: 'PATCH',
+                          headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                          },
+                          body: JSON.stringify({ 
+                            personalityTraits: {
+                              isWhatsAppStyle: personalityWhatsApp,
+                              aggressivenessLevel: personalityAggressiveness,
+                              forbidLongLinks: personalityForbidLinks
+                            }
+                          })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          alert('¡Configuración Neuronal cargada exitosamente!');
+                        } else {
+                          alert('Error: ' + data.error);
+                        }
+                      } catch (e) {
+                        alert('Error al conectar con el laboratorio.');
+                      }
+                    }}>
+                      Guardar Configuración Neuronal
+                    </button>
                   </div>
                 )}
 
