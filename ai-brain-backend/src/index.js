@@ -29,6 +29,7 @@ const usersDb = new Datastore({ filename: path.join(dbDir, 'users.db'), autoload
 const brainsDb = new Datastore({ filename: path.join(dbDir, 'brains.db'), autoload: true });
 const chatsDb = new Datastore({ filename: path.join(dbDir, 'chats.db'), autoload: true });
 const messagesDb = new Datastore({ filename: path.join(dbDir, 'messages.db'), autoload: true });
+const neuronalLogsDb = new Datastore({ filename: path.join(dbDir, 'neuronal_logs.db'), autoload: true });
 
 // Índice único en email para evitar duplicados
 usersDb.ensureIndex({ fieldName: 'email', unique: true }, err => {
@@ -41,6 +42,21 @@ const dbFind = (db, query) => new Promise((res, rej) => db.find(query, (e, d) =>
 const dbFindOne = (db, query) => new Promise((res, rej) => db.findOne(query, (e, d) => e ? rej(e) : res(d)));
 const dbInsert = (db, doc) => new Promise((res, rej) => db.insert(doc, (e, d) => e ? rej(e) : res(d)));
 const dbUpdate = (db, q, u, opt) => new Promise((res, rej) => db.update(q, u, opt || {}, (e, n) => e ? rej(e) : res(n)));
+
+// Helper para logs neuronales
+async function addNeuronalLog(message, type = 'info', metadata = {}) {
+    try {
+        await dbInsert(neuronalLogsDb, {
+            message,
+            type,
+            metadata,
+            timestamp: new Date()
+        });
+        console.log(`[NeuronalLog] [${type.toUpperCase()}] ${message}`);
+    } catch (e) {
+        console.error('Error guardando log neuronal:', e);
+    }
+}
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -244,8 +260,8 @@ async function connectToWhatsApp(forceNew = false) {
                     const brains = await dbFind(brainsDb, {});
                     const activeBrain = brains[0] || { nombre: 'Cerebro Genérico', catalogo: [], shortcuts: {}, nicho: 'Ventas' };
 
-                    console.log(`[WhatsApp] 🧠 Procesando "${text}" con cerebro: ${activeBrain.name || activeBrain.nombre}`);
-
+                    await addNeuronalLog(`Procesando mensaje de ${msg.pushName || from}: "${text}"`, 'info', { from, text });
+                    
                     const result = await generateAIResponse({
                         brain: activeBrain,
                         mensajeCliente: text,
@@ -253,7 +269,7 @@ async function connectToWhatsApp(forceNew = false) {
                     });
 
                     if (result && result.respuestaTexto) {
-                        console.log(`[WhatsApp] 🤖 RESPUESTA GENERADA: "${result.respuestaTexto}"`);
+                        await addNeuronalLog(`Respuesta generada para ${from}: "${result.respuestaTexto}"`, 'ai', { sentiment: result.sentiment });
                         await waSocket.sendMessage(from, { text: result.respuestaTexto });
                         
                         // Persistir Respuesta de la IA
@@ -448,6 +464,17 @@ app.get('/api/whatsapp/messages/:jid', auth, async (req, res) => {
     }
 });
 
+app.get('/api/neuronal-logs', auth, async (req, res) => {
+    try {
+        const logs = await dbFind(neuronalLogsDb, {});
+        // Devolver los últimos 50 logs por ahora
+        logs.sort((a, b) => b.timestamp - a.timestamp);
+        res.json(logs.slice(0, 50));
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener logs neuronales.' });
+    }
+});
+
 /**
  * ACTUALIZAR RASGOS DE PERSONALIDAD
  */
@@ -571,6 +598,10 @@ app.post('/api/whatsapp/reset', auth, async (req, res) => {
  */
 async function generateAIResponse({ brain, mensajeCliente, historial = [], ultimoItemEnviadoPorHumano = null }) {
     const brainName = brain?.nombre || "Cerebro Clon";
+    
+    await addNeuronalLog(`Darwin activado para ${brainName}`, 'system');
+    await addNeuronalLog(`Analizando mensaje: "${mensajeCliente}"`, 'brain');
+
     const catalogoProductos = brain?.catalogoProductos || brain?.catalogo || CRM_MEMORY.catalogo;
     const respuestasRapidas = brain?.respuestasRapidas || brain?.shortcuts || CRM_MEMORY.shortcuts;
 
