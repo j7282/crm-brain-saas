@@ -27,6 +27,8 @@ if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
 const usersDb = new Datastore({ filename: path.join(dbDir, 'users.db'), autoload: true });
 const brainsDb = new Datastore({ filename: path.join(dbDir, 'brains.db'), autoload: true });
+const chatsDb = new Datastore({ filename: path.join(dbDir, 'chats.db'), autoload: true });
+const messagesDb = new Datastore({ filename: path.join(dbDir, 'messages.db'), autoload: true });
 
 // Índice único en email para evitar duplicados
 usersDb.ensureIndex({ fieldName: 'email', unique: true }, err => {
@@ -218,6 +220,25 @@ async function connectToWhatsApp(forceNew = false) {
 
             if (text) {
                 console.log(`[WhatsApp] 📥 RECIBIDO de ${from}: "${text}"`);
+                
+                // Persistir Mensaje y Chat
+                const msgData = {
+                    jid: from,
+                    text,
+                    role: 'client',
+                    timestamp: new Date(),
+                    pushName: msg.pushName
+                };
+                await dbInsert(messagesDb, msgData);
+                
+                await dbUpdate(chatsDb, { jid: from }, { 
+                    $set: { 
+                        jid: from, 
+                        lastMessage: text, 
+                        lastTimestamp: new Date(),
+                        pushName: msg.pushName || from.split('@')[0]
+                    } 
+                }, { upsert: true });
 
                 try {
                     const brains = await dbFind(brainsDb, {});
@@ -234,6 +255,24 @@ async function connectToWhatsApp(forceNew = false) {
                     if (result && result.respuestaTexto) {
                         console.log(`[WhatsApp] 🤖 RESPUESTA GENERADA: "${result.respuestaTexto}"`);
                         await waSocket.sendMessage(from, { text: result.respuestaTexto });
+                        
+                        // Persistir Respuesta de la IA
+                        await dbInsert(messagesDb, {
+                            jid: from,
+                            text: result.respuestaTexto,
+                            role: 'ai',
+                            timestamp: new Date(),
+                            sentiment: result.sentiment
+                        });
+                        
+                        await dbUpdate(chatsDb, { jid: from }, { 
+                            $set: { 
+                                lastMessage: result.respuestaTexto, 
+                                lastTimestamp: new Date(),
+                                sentiment: result.sentiment
+                            } 
+                        });
+
                         console.log(`[WhatsApp] ✅ Mensaje enviado exitosamente a ${from}`);
                     } else {
                         console.warn('[WhatsApp] ⚠️ La IA devolvió una respuesta vacía o inválida:', result);
@@ -387,6 +426,29 @@ app.post('/api/knowledge/url', auth, async (req, res) => {
 });
 
 /**
+ * API WHATSAPP REAL (History & Chats)
+ */
+app.get('/api/whatsapp/chats', auth, async (req, res) => {
+    try {
+        const chats = await dbFind(chatsDb, {});
+        // Ordenar por último mensaje
+        chats.sort((a, b) => b.lastTimestamp - a.lastTimestamp);
+        res.json(chats);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener chats.' });
+    }
+});
+
+app.get('/api/whatsapp/messages/:jid', auth, async (req, res) => {
+    try {
+        const messages = await dbFind(messagesDb, { jid: req.params.jid });
+        res.json(messages);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener mensajes.' });
+    }
+});
+
+/**
  * ACTUALIZAR RASGOS DE PERSONALIDAD
  */
 app.patch('/api/brains/:id/traits', auth, async (req, res) => {
@@ -400,6 +462,37 @@ app.patch('/api/brains/:id/traits', auth, async (req, res) => {
     } catch (error) {
         console.error("Error actualizando rasgos:", error);
         res.status(500).json({ error: 'Error al actualizar rasgos.' });
+    }
+});
+
+app.post('/api/whatsapp/send', auth, async (req, res) => {
+    try {
+        const { jid, text } = req.body;
+        if (!waSocket || connectionStatus !== 'connected') {
+            return res.status(400).json({ error: 'WhatsApp no está conectado.' });
+        }
+
+        await waSocket.sendMessage(jid, { text });
+
+        // Persistir Mensaje Enviado
+        await dbInsert(messagesDb, {
+            jid,
+            text,
+            role: 'agent', // Diferenciamos AI de Agente Humano
+            timestamp: new Date()
+        });
+
+        await dbUpdate(chatsDb, { jid }, { 
+            $set: { 
+                lastMessage: text, 
+                lastTimestamp: new Date()
+            } 
+        });
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error enviando mensaje manual:", error);
+        res.status(500).json({ error: 'Error al enviar el mensaje.' });
     }
 });
 
