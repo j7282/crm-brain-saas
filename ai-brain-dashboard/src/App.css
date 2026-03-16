@@ -1,3 +1,40 @@
+:root {
+  /* -- Palette Navy Elite -- */
+  --bg-navy: #1a1f3c;        /* Navy Profundo Sidebar */
+  --bg-navy-light: #252b48;  /* Navy Aclante */
+  --accent-blue: #3b82f6;    /* Azul Principal */
+  --accent-blue-hover: #2563eb;
+  --accent-purple: #8b5cf6;  /* Acento para IA */
+  
+  --bg-primary: #f8fafc;     /* Fondo de Chat */
+  --bg-secondary: #ffffff;   /* Fondo de Paneles */
+  --border-color: #e2e8f0;   /* Bordes Suaves */
+  
+  --text-on-navy: #ffffff;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-tertiary: #94a3b8;
+  
+  /* -- UI Tokens -- */
+  --sidebar-width: 260px;
+  --sidebar-collapsed: 72px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --font-body: 'Outfit', sans-serif;
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  
+  /* Legacy mapping for partial compatibility */
+  --wa-green: var(--accent-blue);
+  --wa-teal: var(--accent-blue);
+  --wa-bubble-sent: var(--accent-blue);
+  --wa-bubble-received: #ffffff;
+}
+
+/* Import Font */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
 /* WhatsApp Web Layout Styles */
 
 .app-container {

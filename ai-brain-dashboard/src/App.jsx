@@ -13,8 +13,11 @@ import {
   Mic,
   Cpu,
   ShieldAlert,
-  Bot
-} from 'lucide-react' // Wait, I need to install lucide-react first. I will replace these with placeholders for now.
+  Bot,
+  Plus,
+  Smile,
+  Send
+} from 'lucide-react'
 
 function App() {
   const [isOnboarding, setIsOnboarding] = useState(true);
@@ -49,6 +52,7 @@ function App() {
   const [personalityForbidLinks, setPersonalityForbidLinks] = useState(false);
   const [isScraping, setIsScraping] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [knowledgeUrl, setKnowledgeUrl] = useState('');
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -214,7 +218,7 @@ function App() {
                 } else {
                   alert(data.error || "Algo salió mal");
                 }
-              } catch (err) {
+              } catch (_err) {
                 alert("Error de conexión con el servidor.");
               }
             }}
@@ -478,7 +482,7 @@ function App() {
                       setActiveBrainId(data._id);
                       setIsOnboarding(false);
                     }
-                  } catch (err) {
+                  } catch (_err) {
                     alert("Error guardando el cerebro.");
                   }
                 }}>
@@ -711,8 +715,8 @@ function App() {
                             className="chat-input"
                             placeholder="Escribe un mensaje aquí..."
                             rows="1"
-                            value={currentMessage}
-                            onChange={(e) => setCurrentMessage(e.target.value)}
+                            value={inputText}
+                            onChange={(e) => setInputText(e.target.value)}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault();
