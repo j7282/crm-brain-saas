@@ -53,6 +53,9 @@ function App() {
   const [isScraping, setIsScraping] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [knowledgeUrl, setKnowledgeUrl] = useState('');
+  const [chats, setChats] = useState([]);
+  const [selectedChatJid, setSelectedChatJid] = useState(null);
+  const [realMessages, setRealMessages] = useState([]);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -109,6 +112,49 @@ function App() {
     return () => clearInterval(interval);
   }, [isOnboarding, onboardingStep, token]);
 
+  // Polling para Chats
+  useEffect(() => {
+    let interval;
+    if (token && activeTab === 'inbox') {
+      const fetchChats = async () => {
+        try {
+          const res = await fetch(`${BACKEND_URL}/api/whatsapp/chats`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setChats(data);
+            if (!selectedChatJid && data.length > 0) {
+              setSelectedChatJid(data[0].jid);
+            }
+          }
+        } catch (err) { console.error("Error fetching chats:", err); }
+      };
+      fetchChats();
+      interval = setInterval(fetchChats, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [token, activeTab, selectedChatJid]);
+
+  // Polling para Mensajes del Chat Seleccionado
+  useEffect(() => {
+    let interval;
+    if (token && selectedChatJid) {
+      const fetchMessages = async () => {
+        try {
+          const res = await fetch(`${BACKEND_URL}/api/whatsapp/messages/${selectedChatJid}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
+          if (Array.isArray(data)) setRealMessages(data);
+        } catch (err) { console.error("Error fetching messages:", err); }
+      };
+      fetchMessages();
+      interval = setInterval(fetchMessages, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [token, selectedChatJid]);
+
   useEffect(() => {
     if (activeBrainId && token) {
       fetch(`${BACKEND_URL}/api/brains/${activeBrainId}`, {
@@ -128,39 +174,29 @@ function App() {
   }, [activeBrainId, token]);
 
   const handleSendMessage = async () => {
-    if (!inputText.trim() || isTyping) return;
+    if (!inputText.trim() || !selectedChatJid) return;
 
-    const userMsg = { role: 'client', text: inputText };
-    setMessages(prev => [...prev, userMsg]);
-    setInputText('');
-    setIsTyping(true);
-
-    setLastQuery(inputText);
     try {
-      const response = await fetch(`${BACKEND_URL}/api/cerebro`, {
+      const res = await fetch(`${BACKEND_URL}/api/whatsapp/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          mensajeCliente: inputText,
-          historial: messages.slice(-5),
-          brainId: activeBrainId
+          jid: selectedChatJid,
+          text: inputText
         })
       });
 
-      const data = await response.json();
-
-      if (data.respuestaTexto) {
-        setMessages(prev => [...prev, { role: 'ai', text: data.respuestaTexto }]);
-        if (data.sentiment) setCurrentSentiment(data.sentiment);
+      if (res.ok) {
+        setInputText('');
+        // El polling refrescará el mensaje en la UI
+      } else {
+        alert("Error al enviar mensaje real.");
       }
-    } catch (error) {
-      console.error("Error en simulación:", error);
-      setMessages(prev => [...prev, { role: 'ai', text: "Lo siento, mi conexión cerebral ha fallado momentáneamente." }]);
-    } finally {
-      setIsTyping(false);
+    } catch (err) {
+      console.error("Error sending message:", err);
     }
   };
 
@@ -583,128 +619,86 @@ function App() {
                         </div>
                       </div>
 
-                      <div className="chat-item active">
-                        <div className="avatar">
-                          <img src="https://i.pravatar.cc/150?u=carlos" alt="Carlos" />
+                      {chats.length === 0 && (
+                        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                          <p>No hay hilos de WhatsApp activos.</p>
+                          <p style={{ fontSize: '0.8rem' }}>Conecta tu cuenta en el Onboarding para recibir mensajes.</p>
                         </div>
-                        <div className="chat-info">
-                          <div className="chat-header">
-                            <span className="contact-name">Carlos Ruiz</span>
-                            <span className="time">10:42</span>
-                          </div>
-                          <div className="chat-preview-row">
-                            <span className="sentiment-badge bg-red"></span>
-                            <p className="last-message" style={{ color: 'var(--text-primary)' }}>¡Ya deposité hace 2 horas y no me confirman!</p>
-                          </div>
-                        </div>
-                      </div>
+                      )}
 
-                      <div className="chat-item">
-                        <div className="avatar">AM</div>
-                        <div className="chat-info">
-                          <div className="chat-header">
-                            <span className="contact-name">Ana M. (Cot. #492)</span>
-                            <span className="time">Ayer</span>
+                      {chats.map((chat) => (
+                        <div 
+                          key={chat.jid} 
+                          className={`chat-item ${selectedChatJid === chat.jid ? 'active' : ''}`}
+                          onClick={() => setSelectedChatJid(chat.jid)}
+                        >
+                          <div className="avatar">
+                            {chat.pushName?.substring(0, 2).toUpperCase() || 'WA'}
                           </div>
-                          <div className="chat-preview-row">
-                            <span className="sentiment-badge bg-green"></span>
-                            <p className="last-message">Perfecto, mándame los datos para la transferencia.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="chat-item">
-                        <div className="avatar">
-                          <img src="https://i.pravatar.cc/150?u=roberto" alt="Roberto" />
-                        </div>
-                        <div className="chat-info">
-                          <div className="chat-header">
-                            <span className="contact-name">Roberto J.</span>
-                            <span className="time">Ayer</span>
-                          </div>
-                          <div className="chat-preview-row">
-                            <span className="sentiment-badge bg-yellow"></span>
-                            <p className="last-message">Me gusta, pero vi uno similar más barato en otra agencia.</p>
+                          <div className="chat-info">
+                            <div className="chat-header">
+                              <span className="contact-name">{chat.pushName || chat.jid.split('@')[0]}</span>
+                              <span className="time">
+                                {new Date(chat.lastTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <div className="chat-preview-row">
+                              <span className={`sentiment-badge bg-${chat.sentiment || 'yellow'}`}></span>
+                              <p className="last-message" style={{ color: 'var(--text-primary)' }}>{chat.lastMessage}</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      ))}
                     </div>
 
                     {/* Active Chat View */}
                     <div className="chat-view">
-                      <div className="chat-view-header">
-                        <div className="header-user-info">
-                          <div className="avatar" style={{ width: '40px', height: '40px', marginRight: '12px' }}>
-                            <img src="https://i.pravatar.cc/150?u=carlos" alt="Carlos" />
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span className="contact-name" style={{ fontSize: '1rem' }}>Carlos Ruiz</span>
-                            <span style={{ fontSize: '0.8rem', color: 'var(--sentiment-red)' }}>Prioridad: Urgente</span>
-                          </div>
+                      {!selectedChatJid ? (
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                          <Bot size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
+                          <h3>Selecciona una conversación</h3>
+                          <p>Los mensajes reales de tu WhatsApp aparecerán aquí.</p>
                         </div>
-                        <div className="header-icons">
-                          <button className="take-control-btn" onClick={() => {
-                            setSuggestedResponse("¡Hola Carlos! Siento mucho la demora. He verificado manualmente y tu pago ya fue recibido. En 5 minutos te llega el contrato.");
-                            setIsInterventionMode(true);
-                          }}>
-                            <span>🛑</span> Tomar Control
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="messages-area">
-                        <div style={{ textAlign: 'center', margin: '20px 0', padding: '5px 12px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', color: 'var(--text-secondary)', fontSize: '0.75rem', alignSelf: 'center', zIndex: 1 }}>
-                          Inicio de la conversación (Simulador)
-                        </div>
-
-                        <div className="message-container client">
-                          <div className="message client">
-                            <div className="message-content">
-                              ¡Hola! Ya hice el pago del enganche para el auto, te mandé foto del comprobante hace como 2 horas y nadie me dice nada. ¿Qué pasó?
-                            </div>
-                            <div className="message-meta">
-                              <span className="message-time">10:40</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="message-container ai">
-                          <div className="message ai">
-                            <div className="message-content">
-                              Hola Carlos. Entiendo completamente tu preocupación. Una disculpa por la demora, estábamos verificando el reflejo del pago en el sistema bancario.
-                              <br /><br />
-                              ¡Buenas noticias! Tu pago inicial ya está confirmado. En unos minutos te enviaré el contrato digital para firma.
-                            </div>
-                            <div className="ai-meta">
-                              <span>✨</span> Estrategia: Validación y Rapidez
-                            </div>
-                            <div className="message-meta">
-                              <span className="message-time">10:41</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {messages.map((msg, idx) => (
-                          <div key={idx} className={`message-container ${msg.role}`}>
-                            <div className={`message ${msg.role}`}>
-                              <div className="message-content">
-                                {msg.text}
+                      ) : (
+                        <>
+                          <div className="chat-view-header">
+                            <div className="header-user-info">
+                              <div className="avatar" style={{ width: '40px', height: '40px', marginRight: '12px' }}>
+                                {chats.find(c => c.jid === selectedChatJid)?.pushName?.substring(0, 2).toUpperCase()}
                               </div>
-                              <div className="message-meta">
-                                <span className="message-time">10:42</span> {/* Simulated time */}
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span className="contact-name" style={{ fontSize: '1rem' }}>
+                                  {chats.find(c => c.jid === selectedChatJid)?.pushName || selectedChatJid.split('@')[0]}
+                                </span>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--wa-green)' }}>En línea (WhatsApp Real)</span>
                               </div>
                             </div>
-                          </div>
-                        ))}
-
-                        {isTyping && (
-                          <div className="message-container ai">
-                            <div className="message ai" style={{ opacity: 0.7, fontStyle: 'italic', paddingRight: '16px' }}>
-                              Escribiendo...
+                            <div className="header-icons">
+                              <button className="take-control-btn" onClick={() => {
+                                setIsInterventionMode(true);
+                              }}>
+                                <span>🛑</span> Tomar Control
+                              </button>
                             </div>
                           </div>
-                        )}
-                        <div ref={messagesEndRef} />
-                      </div>
+
+                          <div className="messages-area">
+                            {realMessages.map((msg, idx) => (
+                              <div key={idx} className={`message-container ${msg.role}`}>
+                                <div className={`message ${msg.role}`}>
+                                  <div className="message-content">
+                                    {msg.text}
+                                  </div>
+                                  <div className="message-meta">
+                                    <span className="message-time">
+                                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                            <div ref={messagesEndRef} />
+                          </div>
 
                       <div className="input-area">
                         <div className="action-btn">
