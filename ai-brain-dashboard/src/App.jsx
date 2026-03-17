@@ -766,14 +766,14 @@ function App() {
                       <div className="chat-list-items">
                         {chats.length === 0 ? (
                           <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
-                            <div style={{ fontSize: '3rem', marginBottom: '20px' }}>{waStatus === 'connected' ? '⏳' : '⚠️'}</div>
-                            <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                              {waStatus === 'connected' ? 'Darwin está absorbiendo tus chats...' : 'WhatsApp Desconectado'}
+                            <div style={{ fontSize: '3rem', marginBottom: '20px' }}>{waStatus === 'connected' ? '⏳' : '🧠'}</div>
+                            <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '1.1rem' }}>
+                              {waStatus === 'connected' ? 'Darwin está absorbiendo tus chats...' : `Cerebro "${brainName}" Protegido`}
                             </p>
-                            <p style={{ fontSize: '0.8rem', margin: '10px 0 20px' }}>
+                            <p style={{ fontSize: '0.9rem', margin: '10px 0 20px', color: 'var(--text-secondary)', maxWidth: '300px', marginLeft: 'auto', marginRight: 'auto' }}>
                               {waStatus === 'connected' 
-                                ? 'Espera unos segundos mientras procesamos tus 500+ conversaciones sin gastar tokens.' 
-                                : 'La sesión de WhatsApp ha expirado o se ha cerrado. Vincula de nuevo para ver tus mensajes.'}
+                                ? 'Espera unos segundos mientras procesamos tus conversaciones sin gastar tokens.' 
+                                : 'Tu configuración y entrenamiento están a salvo. Solo necesitas vincular WhatsApp para que Darwin empiece a vender.'}
                             </p>
                             
                             {waStatus === 'connected' ? (
@@ -792,8 +792,11 @@ function App() {
                             ) : (
                               <button 
                                   className="primary-btn" 
-                                  onClick={() => setIsOnboarding(true)}
-                                  style={{ fontSize: '0.8rem', padding: '10px 20px' }}
+                                  onClick={() => {
+                                    setOnboardingStep(2);
+                                    setIsOnboarding(true);
+                                  }}
+                                  style={{ fontSize: '0.9rem', padding: '12px 24px', background: 'var(--wa-green)', border: 'none' }}
                               >
                                   Vincular WhatsApp de Nuevo
                               </button>
