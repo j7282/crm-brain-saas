@@ -798,7 +798,16 @@ function App() {
                             {waStatus !== 'connected' && (
                               <button 
                                   className="primary-btn" 
-                                  onClick={() => {
+                                  onClick={async () => {
+                                    // Disparo en caliente: Resetear WA en el backend pero mantener el cerebro activo
+                                    try {
+                                      await fetch(`${BACKEND_URL}/api/whatsapp/reset`, {
+                                        method: 'POST',
+                                        headers: { 'Authorization': `Bearer ${token}` }
+                                      });
+                                    } catch (e) {
+                                      console.warn('Error al solicitar nuevo QR, se intentará de todas formas.');
+                                    }
                                     setOnboardingStep(2);
                                     setIsOnboarding(true);
                                   }}
