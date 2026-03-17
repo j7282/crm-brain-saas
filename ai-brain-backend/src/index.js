@@ -543,7 +543,7 @@ app.get('/api/health', async (req, res) => {
         const msgsCount = await dbCount(messagesDb, {});
         res.json({
             status: 'online',
-            version: '1.6.4-MULTIMEDIA',
+            version: '1.6.5-SHORTCUTS',
             waStatus: connectionStatus,
             database: {
                 chats: chatsCount,

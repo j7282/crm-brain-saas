@@ -849,3 +849,33 @@
     padding: 24px;
   }
 }
+
+/* Quick Replies */
+.quick-replies::-webkit-scrollbar {
+    height: 4px;
+}
+.quick-replies::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+}
+.quick-btn {
+    white-space: nowrap;
+    padding: 6px 14px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.quick-btn:hover {
+    background: #f0f0f0;
+    border-color: var(--wa-green);
+    color: var(--wa-green);
+    transform: translateY(-1px);
+}
+.quick-btn:active {
+    transform: translateY(0);
+}

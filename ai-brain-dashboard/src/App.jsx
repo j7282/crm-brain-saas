@@ -914,10 +914,24 @@ function App() {
                           </div>
 
                           <div className="input-area">
-                            <div className="action-btn">
-                              <Plus size={20} />
+                            <div className="quick-replies" style={{ 
+                                display: 'flex', 
+                                gap: '8px', 
+                                padding: '8px 15px', 
+                                overflowX: 'auto', 
+                                borderTop: '1px solid var(--border-color)',
+                                backgroundColor: 'rgba(0,0,0,0.02)'
+                            }}>
+                                <button className="quick-btn" onClick={() => setInputText("¿En qué puedo ayudarte hoy?")}>👋 Saludo</button>
+                                <button className="quick-btn" onClick={() => setInputText("El precio es de $1,200 pesos. ¿Te interesa?")}>💰 Pipa $1,200</button>
+                                <button className="quick-btn" onClick={() => setInputText("Te mando la cuenta: BBVA 0123...")}>🏦 Cuenta</button>
+                                <button className="quick-btn" onClick={() => setInputText("Necesito tu dirección para el envío.")}>📍 Dirección</button>
                             </div>
-                            <div className="chat-input-wrapper">
+                            <div className="input-main" style={{ display: 'flex', alignItems: 'center', padding: '10px 15px' }}>
+                                <div className="action-btn">
+                                  <Plus size={20} />
+                                </div>
+                                <div className="chat-input-wrapper" style={{ flex: 1, margin: '0 10px' }}>
                               <textarea
                                 className="chat-input"
                                 placeholder="Escribe un mensaje aquí..."
@@ -935,6 +949,7 @@ function App() {
                             </div>
                             <div className="action-btn send" onClick={handleSendMessage}>
                               <Send size={20} />
+                            </div>
                             </div>
                           </div>
                         </>
