@@ -16,9 +16,53 @@ const pino = require('pino');
 const Datastore = require('@seald-io/nedb');
 const { scrapeUrl } = require('./services/scraper');
 const http = require('http');
+const mongoose = require('mongoose');
 const { Server } = require('socket.io');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// =============================================
+// PERSISTENCIA HÍBRIDA: NeDB (Local) + MongoDB (Nube) J7282
+// =============================================
+const mongoUri = process.env.MONGODB_URI;
+let isMongoConnected = false;
+
+if (mongoUri) {
+    mongoose.connect(mongoUri)
+        .then(() => {
+            console.log('[MongoDB] ✅ Conectado a Atlas - Mente Blindada');
+            isMongoConnected = true;
+            runCloudMigration(); // Sincronizar NeDB -> Mongo al iniciar J7282
+        })
+        .catch(err => console.error('[MongoDB] ❌ Error de conexión:', err.message));
+}
+
+// Schemas de Mongoose para Inmortalidad J7282
+const UserSchema = new mongoose.Schema({
+    email: { type: String, unique: true, required: true },
+    password: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now }
+});
+const MUser = mongoose.model('User', UserSchema);
+
+const BrainSchema = new mongoose.Schema({
+    userId: String,
+    name: String,
+    config: Object,
+    knowledge: String,
+    personalityTraits: Object,
+    isMirrorMode: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now }
+});
+const MBrain = mongoose.model('Brain', BrainSchema);
+
+const NeuronalLogSchema = new mongoose.Schema({
+    message: String,
+    type: String,
+    metadata: Object,
+    timestamp: { type: Date, default: Date.now }
+});
+const MNeuronalLog = mongoose.model('NeuronalLog', NeuronalLogSchema);
 
 // =============================================
 // BASE DE DATOS LOCAL (NeDB - Sin configuración)
@@ -61,10 +105,43 @@ async function addNeuronalLog(message, type = 'info', metadata = {}) {
             timestamp: new Date()
         };
         await dbInsert(neuronalLogsDb, log);
-        io.emit('neuronal-log', log); // Notificar a la UI en tiempo real
+        if (isMongoConnected) await MNeuronalLog.create(log); // Backup en nube J7282
+        
+        io.emit('neuronal-log', log); 
         console.log(`[NeuronalLog] [${type.toUpperCase()}] ${message}`);
     } catch (e) {
         console.error('Error guardando log neuronal:', e);
+    }
+}
+
+/**
+ * MOTOR DE MIGRACIÓN: NeDB -> MongoDB J7282
+ * Asegura que si ya tenías cerebros locales, se suban a Atlas.
+ */
+async function runCloudMigration() {
+    if (!isMongoConnected) return;
+    try {
+        console.log('[Migration] 🔄 Verificando migración de cerebros...');
+        const localBrains = await dbFind(brainsDb, {});
+        for (const brain of localBrains) {
+            const exists = await MBrain.findOne({ _id: brain._id });
+            if (!exists) {
+                console.log(`[Migration] 📤 Subiendo cerebro: ${brain.name}`);
+                await MBrain.create(brain);
+            }
+        }
+        
+        const localUsers = await dbFind(usersDb, {});
+        for (const user of localUsers) {
+            const exists = await MUser.findOne({ email: user.email });
+            if (!exists) {
+                console.log(`[Migration] 👤 Subiendo usuario: ${user.email}`);
+                await MUser.create(user);
+            }
+        }
+        console.log('[Migration] ✅ Sincronización con la nube completada.');
+    } catch (e) {
+        console.error('[Migration] ❌ Error:', e.message);
     }
 }
 
@@ -569,12 +646,24 @@ app.post('/api/auth/register', async (req, res) => {
         if (!email || !password) {
             return res.status(400).json({ error: 'Email y contraseña son requeridos.' });
         }
-        const existing = await dbFindOne(usersDb, { email });
+        
+        // Buscar en NeDB o Mongo J7282
+        let existing = await dbFindOne(usersDb, { email });
+        if (!existing && isMongoConnected) {
+            existing = await MUser.findOne({ email });
+        }
+
         if (existing) {
             return res.status(400).json({ error: 'Ese correo electrónico ya está registrado.' });
         }
+
         const hashedPassword = await bcrypt.hash(password, 10);
-        const user = await dbInsert(usersDb, { email, password: hashedPassword, createdAt: new Date() });
+        const userData = { email, password: hashedPassword, createdAt: new Date() };
+        
+        // Guardado Dual J7282
+        const user = await dbInsert(usersDb, userData);
+        if (isMongoConnected) await MUser.create({ ...userData, _id: user._id });
+
         const token = jwt.sign({ userId: user._id }, JWT_SECRET);
         res.status(201).json({ user: { id: user._id, email: user.email }, token });
     } catch (error) {
@@ -586,7 +675,14 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const user = await dbFindOne(usersDb, { email });
+        
+        // Buscar en ambos para asegurar login tras reinicios J7282
+        let user = await dbFindOne(usersDb, { email });
+        if (!user && isMongoConnected) {
+            user = await MUser.findOne({ email });
+            if (user) await dbInsert(usersDb, user); // Auto-recuperación local J7282
+        }
+
         if (!user) {
             return res.status(401).json({ error: 'Credenciales inválidas.' });
         }
@@ -606,7 +702,12 @@ app.post('/api/auth/login', async (req, res) => {
  */
 app.post('/api/brains', auth, async (req, res) => {
     try {
-        const brain = await dbInsert(brainsDb, { ...req.body, userId: req.user.userId, createdAt: new Date() });
+        const brainData = { ...req.body, userId: req.user.userId, createdAt: new Date() };
+        const brain = await dbInsert(brainsDb, brainData);
+        
+        // Guardado Dual en la Nube J7282
+        if (isMongoConnected) await MBrain.create({ ...brainData, _id: brain._id });
+        
         res.status(201).json(brain);
     } catch (error) {
         res.status(400).json({ error: 'Error al crear cerebro.' });
@@ -615,8 +716,13 @@ app.post('/api/brains', auth, async (req, res) => {
 
 app.get('/api/brains', auth, async (req, res) => {
     try {
-        const brains = await dbFind(brainsDb, { userId: req.user.userId });
-        res.json(brains);
+        // Consultar Nube primero si está conectado J7282
+        if (isMongoConnected) {
+            const brains = await MBrain.find({ userId: req.user.userId });
+            if (brains.length > 0) return res.json(brains);
+        }
+        const brainsLocal = await dbFind(brainsDb, { userId: req.user.userId });
+        res.json(brainsLocal);
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener cerebros.' });
     }
@@ -624,7 +730,14 @@ app.get('/api/brains', auth, async (req, res) => {
 
 app.get('/api/brains/:id', auth, async (req, res) => {
     try {
-        const brain = await dbFindOne(brainsDb, { _id: req.params.id, userId: req.user.userId });
+        let brain = null;
+        if (isMongoConnected) {
+            brain = await MBrain.findOne({ _id: req.params.id, userId: req.user.userId });
+        }
+        if (!brain) {
+            brain = await dbFindOne(brainsDb, { _id: req.params.id, userId: req.user.userId });
+        }
+        
         if (!brain) return res.status(404).json({ error: 'Cerebro no encontrado.' });
         res.json(brain);
     } catch (error) {
@@ -640,8 +753,15 @@ app.post('/api/brains/:id/train', auth, async (req, res) => {
         const { query, aiResponse, correction } = req.body;
         const brain = await dbFindOne(brainsDb, { _id: req.params.id, userId: req.user.userId });
         if (!brain) return res.status(404).json({ error: 'Cerebro no encontrado.' });
+        
         const newTraining = [...(brain.trainingData || []), { query, aiResponse, correction }];
+        
+        // Actualización Dual J7282
         await dbUpdate(brainsDb, { _id: req.params.id }, { $set: { trainingData: newTraining } });
+        if (isMongoConnected) {
+            await MBrain.updateOne({ _id: req.params.id }, { $set: { trainingData: newTraining } });
+        }
+        
         res.json({ success: true, message: 'Entrenamiento guardado correctamente.' });
     } catch (error) {
         res.status(500).json({ error: 'Error al entrenar el cerebro.' });
@@ -665,7 +785,12 @@ app.post('/api/knowledge/url', auth, async (req, res) => {
         if (!brain) return res.status(404).json({ error: 'Cerebro no encontrado.' });
 
         const knowledgeBase = [...(brain.knowledgeBase || []), { source: url, content, timestamp: new Date() }];
+        
+        // Actualización Dual J7282
         await dbUpdate(brainsDb, { _id: brainId }, { $set: { knowledgeBase } });
+        if (isMongoConnected) {
+            await MBrain.updateOne({ _id: brainId }, { $set: { knowledgeBase } });
+        }
 
         res.json({ success: true, message: 'URL leída y añadida a la base de conocimiento con éxito.' });
     } catch (error) {
@@ -717,7 +842,12 @@ app.patch('/api/brains/:id/traits', auth, async (req, res) => {
         const brain = await dbFindOne(brainsDb, { _id: req.params.id, userId: req.user.userId });
         if (!brain) return res.status(404).json({ error: 'Cerebro no encontrado.' });
 
+        // Actualización Dual J7282
         await dbUpdate(brainsDb, { _id: req.params.id }, { $set: { personalityTraits } });
+        if (isMongoConnected) {
+            await MBrain.updateOne({ _id: req.params.id }, { $set: { personalityTraits } });
+        }
+
         res.json({ success: true, message: 'Rasgos de personalidad actualizados.' });
     } catch (error) {
         console.error("Error actualizando rasgos:", error);
