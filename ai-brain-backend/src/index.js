@@ -10,7 +10,14 @@ const path = require('path');
 const FormData = require('form-data');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+const { 
+    default: makeWASocket, 
+    useMultiFileAuthState, 
+    DisconnectReason, 
+    fetchLatestBaileysVersion,
+    downloadMediaMessage,
+    downloadContentFromMessage 
+} = require('@whiskeysockets/baileys');
 const QRCode = require('qrcode');
 const pino = require('pino');
 const Datastore = require('@seald-io/nedb');
@@ -166,6 +173,7 @@ const port = process.env.PORT || 3000;
 // Configuración de middlewares
 app.use(cors());
 app.use(express.json());
+app.use('/media', express.static(path.join(__dirname, 'public/media'))); // Servir multimedia J7282
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret_para_cerebros_clonados';
 
@@ -476,22 +484,42 @@ async function connectToWhatsApp(forceNew = false) {
             if (text) {
                 console.log(`[WhatsApp] 📥 RECIBIDO de ${from}: "${text}"`);
                 
+                // DESCARGAR MEDIA SI EXISTE J7282
+                let mediaUrl = null;
+                if (isMultimedia && mediaType !== 'sticker' && mediaType !== 'contact' && mediaType !== 'location') {
+                    try {
+                        const buffer = await downloadMediaMessage(msg, 'buffer', {}, { 
+                            logger: console,
+                            reuploadRequest: waSocket.updateMediaMessage 
+                        });
+                        const extension = mediaType === 'image' ? 'jpg' : mediaType === 'video' ? 'mp4' : 'aac';
+                        const fileName = `${Date.now()}_${from.split('@')[0]}.${extension}`;
+                        const filePath = path.join(__dirname, 'public/media', fileName);
+                        fs.writeFileSync(filePath, buffer);
+                        mediaUrl = `/media/${fileName}`;
+                        console.log(`[Media] Guardado: ${mediaUrl}`);
+                    } catch (mediaErr) {
+                        console.error('[Media] Error al descargar:', mediaErr.message);
+                    }
+                }
+
                 // Persistir Mensaje y Chat
                 const msgData = {
                     jid: from,
-                    text,
+                    text: text || (mediaType ? `[${mediaType}]` : ''),
                     role: 'client',
                     timestamp: new Date(),
                     pushName: msg.pushName,
                     isMultimedia,
-                    mediaType
+                    mediaType,
+                    mediaUrl // Guardar URL de media J7282
                 };
                 await dbInsert(messagesDb, msgData);
                 
                 await dbUpdate(chatsDb, { jid: from }, { 
                     $set: { 
                         jid: from, 
-                        lastMessage: text, 
+                        lastMessage: text || `[${mediaType}]`, 
                         lastTimestamp: new Date(),
                         pushName: msg.pushName || from.split('@')[0],
                         lastRole: 'client'
@@ -500,7 +528,7 @@ async function connectToWhatsApp(forceNew = false) {
 
                 // NOTIFICAR AL DASHBOARD EN TIEMPO REAL
                 io.emit('new-message', msgData);
-                io.emit('chat-update', { jid: from, lastMessage: text, lastTimestamp: new Date(), pushName: msg.pushName });
+                io.emit('chat-update', { jid: from, lastMessage: text || `[${mediaType}]`, lastTimestamp: new Date(), pushName: msg.pushName });
 
                 try {
                     const brains = await dbFind(brainsDb, {});
@@ -817,7 +845,10 @@ app.get('/api/whatsapp/chats', auth, async (req, res) => {
 app.get('/api/whatsapp/messages/:jid', auth, async (req, res) => {
     try {
         const messages = await dbFind(messagesDb, { jid: req.params.jid });
-        res.json(messages);
+        // Ordenar por timestamp y limitar a los últimos 100 para velocidad total J7282
+        messages.sort((a, b) => a.timestamp - b.timestamp);
+        const limitedMessages = messages.slice(-100);
+        res.json(limitedMessages);
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener mensajes.' });
     }

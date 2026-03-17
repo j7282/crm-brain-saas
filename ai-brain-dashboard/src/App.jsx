@@ -892,37 +892,54 @@ function App() {
 
                           <div className="messages-area">
                             {realMessages.map((msg, idx) => (
-                              <div key={idx} className={`message-container ${msg.role}`}>
-                                <div className={`message ${msg.role}`}>
-                                    <div className={`message-content ${msg.isMultimedia ? 'multimedia' : ''}`}>
-                                      {msg.isMultimedia && (
-                                        <span style={{ 
-                                          display: 'block', 
-                                          fontSize: '0.85rem', 
-                                          fontStyle: 'italic', 
-                                          opacity: 0.8,
-                                          marginBottom: '4px'
-                                        }}>
-                                          {msg.mediaType === 'image' && '📷 Imagen'}
-                                          {msg.mediaType === 'audio' && '🎤 Nota de voz'}
-                                          {msg.mediaType === 'video' && '🎥 Video'}
-                                          {msg.mediaType === 'document' && '📄 Documento'}
-                                        </span>
+                              <div key={msg._id || idx} className={`message-container ${msg.role}`}>
+                                <div className={`message ${msg.role}`} style={{
+                                  maxWidth: msg.isMultimedia && msg.mediaType === 'image' ? '300px' : '70%',
+                                  boxShadow: '0 1px 1px rgba(0,0,0,0.15)',
+                                  borderRadius: msg.role === 'client' ? '0 8px 8px 8px' : '8px 0 8px 8px'
+                                }}>
+                                    <div className={`message-content ${msg.isMultimedia ? 'multimedia' : ''}`} style={{ marginRight: '10px' }}>
+                                      {msg.isMultimedia && msg.mediaUrl && (
+                                        <div className="media-preview" style={{ marginBottom: '8px', borderRadius: '4px', overflow: 'hidden' }}>
+                                          {msg.mediaType === 'image' && (
+                                            <img 
+                                              src={`${BACKEND_URL}${msg.mediaUrl}`} 
+                                              alt="Media" 
+                                              loading="lazy"
+                                              style={{ width: '100%', maxHeight: '400px', objectFit: 'cover', display: 'block', cursor: 'pointer' }}
+                                              onClick={() => window.open(`${BACKEND_URL}${msg.mediaUrl}`, '_blank')}
+                                            />
+                                          )}
+                                          {msg.mediaType === 'video' && (
+                                            <video 
+                                              src={`${BACKEND_URL}${msg.mediaUrl}`} 
+                                              controls 
+                                              style={{ width: '100%', maxHeight: '400px', display: 'block' }} 
+                                            />
+                                          )}
+                                          {msg.mediaType === 'audio' && (
+                                            <audio 
+                                              src={`${BACKEND_URL}${msg.mediaUrl}`} 
+                                              controls 
+                                              style={{ width: '100%', height: '40px' }} 
+                                            />
+                                          )}
+                                        </div>
                                       )}
-                                      {msg.text}
+                                      <div style={{ whiteSpace: 'pre-wrap', paddingBottom: '14px' }}>{msg.text}</div>
                                     </div>
                                   <div className="message-meta">
                                     <span className="message-time">
-                                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase()}
+                                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toLowerCase()}
                                     </span>
                                     {(msg.role === 'ai' || msg.role === 'agent') && (
-                                      <span className="message-status">✓✓</span>
+                                      <span className="message-status" style={{ color: '#53bdeb' }}>✓✓</span>
                                     )}
                                   </div>
                                 </div>
                               </div>
                             ))}
-                            <div ref={messagesEndRef} />
+                            <div ref={messagesEndRef} style={{ height: '10px' }} />
                           </div>
 
                           <div className="input-area">

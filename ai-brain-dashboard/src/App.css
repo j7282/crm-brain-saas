@@ -416,14 +416,16 @@
 
 .messages-area {
   flex: 1;
-  padding: 20px 5% 20px 5%;
+  padding: 20px 7% 20px 7%;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  background-color: #efeae2; /* WhatsApp wallpaper color */
-  background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); /* Subtle WA pattern */
-  background-blend-mode: overlay;
+  background-color: #efeae2;
+  background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+  background-repeat: repeat;
+  background-attachment: fixed;
   z-index: 1;
+  scroll-behavior: smooth;
 }
 
 /* Chat Bubbles Style WhatsApp */
@@ -444,14 +446,15 @@
 
 .message {
   max-width: 65%;
-  padding: 6px 7px 8px 9px;
-  border-radius: 7.5px;
-  font-size: 14.2px;
-  line-height: 19px;
+  padding: 8px 10px 10px 12px;
+  border-radius: 8px;
+  font-size: 14.5px;
+  line-height: 20px;
   position: relative;
-  box-shadow: 0 1px 0.5px rgba(11,20,26,.13);
+  box-shadow: 0 1px 1px rgba(11,20,26,.18);
   word-wrap: break-word;
   color: #111b21;
+  transition: transform 0.2s ease-out;
 }
 
 .message.client {
@@ -459,9 +462,31 @@
   border-top-left-radius: 0;
 }
 
+/* Cola de la burbuja - Cliente J7282 */
+.message.client::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -8px;
+  width: 12px;
+  height: 19px;
+  background: radial-gradient(circle at 100% 0, transparent 8px, #ffffff 8px);
+}
+
 .message.ai, .message.agent {
   background-color: #dcf8c6;
   border-top-right-radius: 0;
+}
+
+/* Cola de la burbuja - IA J7282 */
+.message.ai::before, .message.agent::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -8px;
+  width: 12px;
+  height: 19px;
+  background: radial-gradient(circle at 0 0, transparent 8px, #dcf8c6 8px);
 }
 
 .message-content {
