@@ -49,6 +49,7 @@ const dbFind = (db, query) => new Promise((res, rej) => db.find(query, (e, d) =>
 const dbFindOne = (db, query) => new Promise((res, rej) => db.findOne(query, (e, d) => e ? rej(e) : res(d)));
 const dbInsert = (db, doc) => new Promise((res, rej) => db.insert(doc, (e, d) => e ? rej(e) : res(d)));
 const dbUpdate = (db, q, u, opt) => new Promise((res, rej) => db.update(q, u, opt || {}, (e, n) => e ? rej(e) : res(n)));
+const dbCount = (db, query) => new Promise((res, rej) => db.count(query, (e, n) => e ? rej(e) : res(n)));
 
 // Helper para logs neuronales
 async function addNeuronalLog(message, type = 'info', metadata = {}) {
