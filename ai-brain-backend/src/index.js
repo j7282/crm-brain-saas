@@ -475,6 +475,24 @@ setTimeout(() => connectToWhatsApp(false), 2000);
 const upload = multer({ dest: 'uploads/' });
 
 // Ruta de Prueba y Estado
+app.get('/api/debug/db-stats', auth, async (req, res) => {
+    try {
+        const usersCount = await dbCount(usersDb, {});
+        const brainsCount = await dbCount(brainsDb, {});
+        const chatsCount = await dbCount(chatsDb, {});
+        const messagesCount = await dbCount(messagesDb, {});
+        res.json({
+            users: usersCount,
+            brains: brainsCount,
+            chats: chatsCount,
+            messages: messagesCount,
+            backend_version: '1.6.1-CHUNK-SYNC'
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'online',

@@ -753,7 +753,20 @@ function App() {
                         {chats.length === 0 ? (
                           <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
                             <p>Sincronizando historial masivo...</p>
-                            <p style={{ fontSize: '0.8rem' }}>Darwin está absorbiendo tus chats sin gastar tokens.</p>
+                            <p style={{ fontSize: '0.8rem', marginBottom: '20px' }}>Darwin está absorbiendo tus chats sin gastar tokens.</p>
+                            <button 
+                                className="secondary-btn" 
+                                style={{ fontSize: '0.8rem', padding: '8px 16px' }}
+                                onClick={() => {
+                                    console.log('[Debug] Forzando sincronización manual...');
+                                    fetch(`${BACKEND_URL}/api/whatsapp/sync-previews`, { 
+                                        method: 'POST', 
+                                        headers: { 'Authorization': `Bearer ${token}` } 
+                                    }).then(() => alert("Sincronización forzada. Espera 10 segundos y refresca."));
+                                }}
+                            >
+                                ⚡ Forzar Sincronización Ahora
+                            </button>
                           </div>
                         ) : (
                           chats
