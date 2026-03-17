@@ -731,17 +731,30 @@ function App() {
                   <div className="inbox-layout">
                     {/* Chat List (Sidebar of Inbox) */}
                     <div className="chat-list">
-                      <div className="inbox-header-tabs">
+                      <div className="inbox-header-tabs" style={{ alignItems: 'center', padding: '0 15px' }}>
                         <div className={`inbox-tab ${inboxFilterStatus === 'Por resolver' ? 'active' : ''}`} onClick={() => setInboxFilterStatus('Por resolver')}>Por resolver</div>
                         <div className={`inbox-tab ${inboxFilterStatus === 'Resueltos' ? 'active' : ''}`} onClick={() => setInboxFilterStatus('Resueltos')}>Resueltos</div>
                         <div className={`inbox-tab ${inboxFilterStatus === 'Todos' ? 'active' : ''}`} onClick={() => setInboxFilterStatus('Todos')}>Todos ({chats.length})</div>
-                        <button 
-                            onClick={() => fetch(`${BACKEND_URL}/api/whatsapp/sync-previews`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } })}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', marginLeft: 'auto', paddingRight: '15px' }}
-                            title="Sincronizar Mensajes"
-                        >
-                            🔄
-                        </button>
+                        
+                        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                           <span style={{ 
+                             fontSize: '0.7rem', 
+                             color: waStatus === 'connected' ? 'var(--wa-green)' : '#ff5252',
+                             backgroundColor: waStatus === 'connected' ? 'rgba(37, 211, 102, 0.1)' : 'rgba(255, 82, 82, 0.1)',
+                             padding: '4px 8px',
+                             borderRadius: '12px',
+                             fontWeight: 600
+                           }}>
+                             {waStatus === 'connected' ? '● EN LÍNEA' : '● DESCONECTADO'}
+                           </span>
+                           <button 
+                               onClick={() => fetch(`${BACKEND_URL}/api/whatsapp/sync-previews`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } })}
+                               style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}
+                               title="Sincronizar Mensajes"
+                           >
+                               🔄
+                           </button>
+                        </div>
                       </div>
 
                       <div className="inbox-assignee-filters">
@@ -753,21 +766,38 @@ function App() {
                       <div className="chat-list-items">
                         {chats.length === 0 ? (
                           <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
-                            <p>Sincronizando historial masivo...</p>
-                            <p style={{ fontSize: '0.8rem', marginBottom: '20px' }}>Darwin está absorbiendo tus chats sin gastar tokens.</p>
-                            <button 
-                                className="secondary-btn" 
-                                style={{ fontSize: '0.8rem', padding: '8px 16px' }}
-                                onClick={() => {
-                                    console.log('[Debug] Forzando sincronización manual...');
-                                    fetch(`${BACKEND_URL}/api/whatsapp/sync-previews`, { 
-                                        method: 'POST', 
-                                        headers: { 'Authorization': `Bearer ${token}` } 
-                                    }).then(() => alert("Sincronización forzada. Espera 10 segundos y refresca."));
-                                }}
-                            >
-                                ⚡ Forzar Sincronización Ahora
-                            </button>
+                            <div style={{ fontSize: '3rem', marginBottom: '20px' }}>{waStatus === 'connected' ? '⏳' : '⚠️'}</div>
+                            <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                              {waStatus === 'connected' ? 'Darwin está absorbiendo tus chats...' : 'WhatsApp Desconectado'}
+                            </p>
+                            <p style={{ fontSize: '0.8rem', margin: '10px 0 20px' }}>
+                              {waStatus === 'connected' 
+                                ? 'Espera unos segundos mientras procesamos tus 500+ conversaciones sin gastar tokens.' 
+                                : 'La sesión de WhatsApp ha expirado o se ha cerrado. Vincula de nuevo para ver tus mensajes.'}
+                            </p>
+                            
+                            {waStatus === 'connected' ? (
+                              <button 
+                                  className="secondary-btn" 
+                                  style={{ fontSize: '0.8rem', padding: '8px 16px' }}
+                                  onClick={() => {
+                                      fetch(`${BACKEND_URL}/api/whatsapp/sync-previews`, { 
+                                          method: 'POST', 
+                                          headers: { 'Authorization': `Bearer ${token}` } 
+                                      }).then(() => alert("Sincronización forzada enviada."));
+                                  }}
+                              >
+                                  ⚡ Re-intentar Carga Masiva
+                              </button>
+                            ) : (
+                              <button 
+                                  className="primary-btn" 
+                                  onClick={() => setIsOnboarding(true)}
+                                  style={{ fontSize: '0.8rem', padding: '10px 20px' }}
+                              >
+                                  Vincular WhatsApp de Nuevo
+                              </button>
+                            )}
                           </div>
                         ) : (
                           chats
