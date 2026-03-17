@@ -734,25 +734,40 @@ function App() {
                   <div className="inbox-layout">
                     {/* Chat List (Sidebar of Inbox) */}
                     <div className="chat-list">
-                      <div className="inbox-header-tabs" style={{ alignItems: 'center', padding: '0 15px' }}>
+                      <div className="inbox-header-tabs" style={{ alignItems: 'center', padding: '0 15px', borderBottom: '1px solid var(--border-color)', height: '60px' }}>
                         <div className={`inbox-tab ${inboxFilterStatus === 'Por resolver' ? 'active' : ''}`} onClick={() => setInboxFilterStatus('Por resolver')}>Por resolver</div>
                         <div className={`inbox-tab ${inboxFilterStatus === 'Resueltos' ? 'active' : ''}`} onClick={() => setInboxFilterStatus('Resueltos')}>Resueltos</div>
                         <div className={`inbox-tab ${inboxFilterStatus === 'Todos' ? 'active' : ''}`} onClick={() => setInboxFilterStatus('Todos')}>Todos ({chats.length})</div>
                         
-                        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                           {/* Escudo de Protección de Cerebro */}
+                           <div style={{ 
+                             display: 'flex', 
+                             alignItems: 'center', 
+                             gap: '6px', 
+                             backgroundColor: 'rgba(53, 162, 235, 0.08)', 
+                             padding: '6px 12px', 
+                             borderRadius: '8px',
+                             border: '1px solid rgba(53, 162, 235, 0.2)'
+                           }} title="Tu entrenamiento y configuración están blindados en la base de datos central.">
+                             <ShieldAlert size={14} style={{ color: 'var(--accent-blue)' }} />
+                             <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--accent-blue)', letterSpacing: '0.5px' }}>CEREBRO BLINDADO</span>
+                           </div>
+
                            <span style={{ 
                              fontSize: '0.7rem', 
                              color: waStatus === 'connected' ? 'var(--wa-green)' : '#ff5252',
                              backgroundColor: waStatus === 'connected' ? 'rgba(37, 211, 102, 0.1)' : 'rgba(255, 82, 82, 0.1)',
-                             padding: '4px 8px',
-                             borderRadius: '12px',
-                             fontWeight: 600
+                             padding: '6px 10px',
+                             borderRadius: '8px',
+                             fontWeight: 600,
+                             border: waStatus === 'connected' ? '1px solid rgba(37, 211, 102, 0.2)' : '1px solid rgba(255, 82, 82, 0.2)'
                            }}>
                              {waStatus === 'connected' ? '● EN LÍNEA' : '● DESCONECTADO'}
                            </span>
                            <button 
                                onClick={() => fetch(`${BACKEND_URL}/api/whatsapp/sync-previews`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } })}
-                               style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}
+                               style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', display: 'flex', alignItems: 'center' }}
                                title="Sincronizar Mensajes"
                            >
                                🔄
@@ -764,44 +779,32 @@ function App() {
                         <div className={`filter-chip ${inboxFilterAssignee === 'all' ? 'active' : ''}`} onClick={() => setInboxFilterAssignee('all')}>Todos</div>
                         <div className={`filter-chip ${inboxFilterAssignee === 'me' ? 'active' : ''}`} onClick={() => setInboxFilterAssignee('me')}>👤 Míos</div>
                         <div className={`filter-chip ${inboxFilterAssignee === 'ai' ? 'active' : ''}`} onClick={() => setInboxFilterAssignee('ai')}>🤖 De la IA</div>
+                        <div style={{ marginLeft: 'auto', fontSize: '0.7rem', opacity: 0.5 }}>Darwin v1.6.6</div>
                       </div>
 
                       <div className="chat-list-items">
                         {chats.length === 0 ? (
-                          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
-                            <div style={{ fontSize: '3rem', marginBottom: '20px' }}>{waStatus === 'connected' ? '⏳' : '🧠'}</div>
-                            <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '1.1rem' }}>
+                          <div style={{ padding: '60px 40px', textAlign: 'center', backgroundColor: 'rgba(53, 162, 235, 0.03)', borderRadius: '24px', margin: '20px', border: '1px dashed rgba(53, 162, 235, 0.1)' }}>
+                            <div style={{ fontSize: '4rem', marginBottom: '24px' }}>🛡️</div>
+                            <h3 style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '1.4rem' }}>
                               {waStatus === 'connected' ? 'Darwin está absorbiendo tus chats...' : `Cerebro "${brainName}" Protegido`}
-                            </p>
-                            <p style={{ fontSize: '0.9rem', margin: '10px 0 20px', color: 'var(--text-secondary)', maxWidth: '300px', marginLeft: 'auto', marginRight: 'auto' }}>
+                            </h3>
+                            <p style={{ fontSize: '1rem', margin: '12px 0 32px', color: 'var(--text-secondary)', maxWidth: '350px', marginLeft: 'auto', marginRight: 'auto', lineHeight: '1.6' }}>
                               {waStatus === 'connected' 
-                                ? 'Espera unos segundos mientras procesamos tus conversaciones sin gastar tokens.' 
-                                : 'Tu configuración y entrenamiento están a salvo. Solo necesitas vincular WhatsApp para que Darwin empiece a vender.'}
+                                ? 'Sincronizando el historial masivo para que tu agente aprenda de tus mejores cierres de venta.' 
+                                : 'Tu entrenamiento, voz y configuración están blindados. El agente no ha perdido nada; solo necesita reconectar WhatsApp para volver a vender.'}
                             </p>
                             
-                            {waStatus === 'connected' ? (
-                              <button 
-                                  className="secondary-btn" 
-                                  style={{ fontSize: '0.8rem', padding: '8px 16px' }}
-                                  onClick={() => {
-                                      fetch(`${BACKEND_URL}/api/whatsapp/sync-previews`, { 
-                                          method: 'POST', 
-                                          headers: { 'Authorization': `Bearer ${token}` } 
-                                      }).then(() => alert("Sincronización forzada enviada."));
-                                  }}
-                              >
-                                  ⚡ Re-intentar Carga Masiva
-                              </button>
-                            ) : (
+                            {waStatus !== 'connected' && (
                               <button 
                                   className="primary-btn" 
                                   onClick={() => {
                                     setOnboardingStep(2);
                                     setIsOnboarding(true);
                                   }}
-                                  style={{ fontSize: '0.9rem', padding: '12px 24px', background: 'var(--wa-green)', border: 'none' }}
+                                  style={{ padding: '14px 28px', fontSize: '1rem', fontWeight: 600 }}
                               >
-                                  Vincular WhatsApp de Nuevo
+                                  🔐 Vincular WhatsApp de Nuevo
                               </button>
                             )}
                           </div>
@@ -1103,36 +1106,58 @@ function App() {
                       </div>
                     </div>
 
-                    <button className="primary-btn" onClick={async () => {
-                      if (!activeBrainId) return alert('Selecciona un cerebro primero.');
-                      try {
-                        const res = await fetch(`${BACKEND_URL}/api/brains/${activeBrainId}/traits`, {
-                          method: 'PATCH',
-                          headers: { 
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                          },
-                          body: JSON.stringify({ 
-                            personalityTraits: {
-                              isWhatsAppStyle: personalityWhatsApp,
-                              aggressivenessLevel: personalityAggressiveness,
-                              forbidLongLinks: personalityForbidLinks,
-                              useVoiceResponse: personalityUseVoice
-                            }
-                          })
-                        });
-                        const data = await res.json();
-                        if (data.success) {
-                          alert('¡Configuración Neuronal cargada exitosamente!');
-                        } else {
-                          alert('Error: ' + data.error);
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <button className="primary-btn" style={{ flex: 1 }} onClick={async () => {
+                        if (!activeBrainId) return alert('Selecciona un cerebro primero.');
+                        try {
+                          const res = await fetch(`${BACKEND_URL}/api/brains/${activeBrainId}/traits`, {
+                            method: 'PATCH',
+                            headers: { 
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ 
+                              personalityTraits: {
+                                isWhatsAppStyle: personalityWhatsApp,
+                                aggressivenessLevel: personalityAggressiveness,
+                                forbidLongLinks: personalityForbidLinks,
+                                useVoiceResponse: personalityUseVoice
+                              }
+                            })
+                          });
+                          const data = await res.json();
+                          if (data.success) {
+                            alert('¡Configuración Neuronal cargada exitosamente!');
+                          } else {
+                            alert('Error: ' + data.error);
+                          }
+                        } catch (e) {
+                          alert('Error al conectar con el laboratorio.');
                         }
-                      } catch (e) {
-                        alert('Error al conectar con el laboratorio.');
-                      }
-                    }}>
-                      Guardar Configuración Neuronal
-                    </button>
+                      }}>
+                        Guardar Configuración Neuronal
+                      </button>
+
+                      <button className="secondary-btn" title="Descargar copia de seguridad del agente" onClick={async () => {
+                        if (!activeBrainId) return alert('Selecciona un cerebro primero.');
+                        try {
+                          const res = await fetch(`${BACKEND_URL}/api/brains/${activeBrainId}`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                          });
+                          const brain = await res.json();
+                          const blob = new Blob([JSON.stringify(brain, null, 2)], { type: 'application/json' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `Darwin_Backup_${brain.name}_${new Date().toISOString().split('T')[0]}.json`;
+                          a.click();
+                        } catch (e) {
+                          alert('Error al generar la copia de seguridad.');
+                        }
+                      }}>
+                        📥 Backup
+                      </button>
+                    </div>
                   </div>
                 )}
 
