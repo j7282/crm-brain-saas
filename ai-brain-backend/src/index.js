@@ -35,8 +35,13 @@ const neuronalLogsDb = new Datastore({ filename: path.join(dbDir, 'neuronal_logs
 
 // Índice único en email para evitar duplicados
 usersDb.ensureIndex({ fieldName: 'email', unique: true }, err => {
-    if (err) console.error('[DB] Error creando índice:', err);
-    else console.log('[DB] ✅ Base de datos local iniciada correctamente');
+    if (err) console.error('[DB] Error creando índice users:', err);
+});
+
+// Índice en jid para búsquedas rápidas de historial
+messagesDb.ensureIndex({ fieldName: 'jid' }, err => {
+    if (err) console.error('[DB] Error creando índice messages:', err);
+    else console.log('[DB] ✅ Índices de base de datos creados correctamente');
 });
 
 // Helpers para promisificar NeDB
