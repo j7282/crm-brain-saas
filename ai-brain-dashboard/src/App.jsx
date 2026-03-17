@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 
 const socket = io(BACKEND_URL);
+console.log('[App] 🚀 Darwin Intelligence System Initialized - Version 1.6.2');
 
 function App() {
   const [isOnboarding, setIsOnboarding] = useState(localStorage.getItem('isOnboarding') !== 'false');
