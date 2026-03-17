@@ -465,6 +465,7 @@ const upload = multer({ dest: 'uploads/' });
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'online',
+        version: '1.6.0-SYNC-FIX',
         database: 'connected (local NeDB)',
         services: {
             cerebro: !!process.env.GEMINI_API_KEY,
