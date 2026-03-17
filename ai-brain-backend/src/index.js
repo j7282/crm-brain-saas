@@ -620,16 +620,17 @@ app.get('/api/health', async (req, res) => {
         const msgsCount = await dbCount(messagesDb, {});
         res.json({
             status: 'online',
-            version: '1.6.6-STABLE-TEST',
+            version: '1.6.8-CLOUD-READY',
             waStatus: connectionStatus,
+            mongo: isMongoConnected, // Confirmación de Blindaje J7282
             database: {
-                chats: chatsCount,
-                messages: msgsCount
+                chats: await dbCount(chatsDb, {}),
+                messages: await dbCount(messagesDb, {})
             },
             services: {
-                cerebro: !!process.env.GEMINI_API_KEY,
-                oido: !!process.env.OPENAI_API_KEY,
-                voz: !!process.env.ELEVENLABS_API_KEY
+                cerebro: true,
+                oido: true,
+                voz: !!ELEVENLABS_API_KEY
             }
         });
     } catch (e) {
