@@ -308,75 +308,99 @@ function App() {
 
   const renderAuth = () => {
     return (
-      <div className="onboarding-overlay" style={{ zIndex: 1000, backgroundColor: 'rgba(0,0,0,0.9)' }}>
-        <div className="onboarding-card auth-card" style={{ maxWidth: '400px', margin: 'auto', background: 'var(--bg-secondary)', padding: '40px', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
-          <div className="logo-icon grow" style={{ fontSize: '3rem', textAlign: 'center', marginBottom: '24px' }}>🧠</div>
-          <h2 style={{ textAlign: 'center', marginBottom: '8px', color: 'var(--text-primary)' }}>{authMode === 'login' ? 'Bienvenido de Nuevo' : 'Crear Cuenta SaaS'}</h2>
-          <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-            <span style={{ fontSize: '0.7rem', border: '1px solid var(--accent)', color: 'var(--accent)', padding: '2px 8px', borderRadius: '10px', opacity: 0.8 }}>v1.5.0-DEPLOY-CHECK</span>
+      <div className="google-auth-container">
+        <div className="google-auth-card">
+          <div className="google-logo">
+            <span style={{ color: '#4285F4' }}>G</span>
+            <span style={{ color: '#EA4335' }}>o</span>
+            <span style={{ color: '#FBBC05' }}>o</span>
+            <span style={{ color: '#4285F4' }}>g</span>
+            <span style={{ color: '#34A853' }}>l</span>
+            <span style={{ color: '#EA4335' }}>e</span>
           </div>
-          <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '32px' }}>
-            Protege tus cerebros clonados y accede desde cualquier lugar.
+          
+          <h1 className="google-title">
+            {authMode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
+          </h1>
+          <p className="google-subtitle">
+            {authMode === 'login' ? 'Ir a Antigravity Dashboard' : 'Para continuar a Antigravity'}
           </p>
 
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Correo Electrónico</label>
+          <div className="google-input-group">
             <input
               type="email"
-              className="input-field"
+              className="google-input"
               value={authEmail}
               onChange={e => setAuthEmail(e.target.value)}
-              placeholder="tu@email.com"
+              required
+              placeholder=" "
+              id="google-email"
             />
+            <label className="google-label" htmlFor="google-email">Correo electrónico</label>
           </div>
 
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Contraseña</label>
+          <div className="google-input-group">
             <input
               type="password"
-              className="input-field"
+              className="google-input"
               value={authPassword}
               onChange={e => setAuthPassword(e.target.value)}
-              placeholder="••••••••"
+              required
+              placeholder=" "
+              id="google-password"
             />
+            <label className="google-label" htmlFor="google-password">Contraseña</label>
           </div>
 
-          <button
-            className="primary-btn"
-            style={{ width: '100%', marginBottom: '16px' }}
-            onClick={async () => {
-              const endpoint = authMode === 'login' ? 'login' : 'register';
-              try {
-                const res = await fetch(`${BACKEND_URL}/api/auth/${endpoint}`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ email: authEmail, password: authPassword })
-                });
-                const data = await res.json();
-                if (data.token) {
-                  setToken(data.token);
-                  localStorage.setItem('token', data.token);
-                  setUser(data.user);
-                } else {
-                  alert(data.error || "Algo salió mal");
-                }
-              } catch (_err) {
-                alert("Error de conexión con el servidor.");
-              }
-            }}
-          >
-            {authMode === 'login' ? 'Entrar al Centro de Mando' : 'Registrar y Empezar'}
-          </button>
+          <p className="google-forgot">
+            ¿Olvidaste tu contraseña?
+          </p>
 
-          <p style={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-tertiary)' }}>
-            {authMode === 'login' ? '¿No tienes cuenta?' : '¿Ya eres miembro?'}
-            <span
-              style={{ color: 'var(--accent-cyan)', cursor: 'pointer', marginLeft: '8px' }}
+          <div className="google-footer-actions">
+            <button
+              className="google-link-btn"
               onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
             >
-              {authMode === 'login' ? 'Regístrate aquí' : 'Inicia sesión'}
-            </span>
-          </p>
+              {authMode === 'login' ? 'Crear cuenta' : 'Iniciar sesión en su lugar'}
+            </button>
+            <button
+              className="google-next-btn"
+              onClick={async () => {
+                const endpoint = authMode === 'login' ? 'login' : 'register';
+                try {
+                  const res = await fetch(`${BACKEND_URL}/api/auth/${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: authEmail, password: authPassword })
+                  });
+                  const data = await res.json();
+                  if (data.token) {
+                    setToken(data.token);
+                    localStorage.setItem('token', data.token);
+                    setUser(data.user);
+                  } else {
+                    alert(data.error || "Algo salió mal");
+                  }
+                } catch (_err) {
+                  alert("Error de conexión con el servidor. ¿Está encendido el backend?");
+                }
+              }}
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+        
+        <div className="google-auth-footer">
+          <div className="google-footer-left">
+            <span>Español (España)</span>
+            <ChevronDown size={14} />
+          </div>
+          <div className="google-footer-right">
+            <span>Ayuda</span>
+            <span>Privacidad</span>
+            <span>Términos</span>
+          </div>
         </div>
       </div>
     );
@@ -710,6 +734,13 @@ function App() {
                         <div className={`inbox-tab ${inboxFilterStatus === 'Por resolver' ? 'active' : ''}`} onClick={() => setInboxFilterStatus('Por resolver')}>Por resolver</div>
                         <div className={`inbox-tab ${inboxFilterStatus === 'Resueltos' ? 'active' : ''}`} onClick={() => setInboxFilterStatus('Resueltos')}>Resueltos</div>
                         <div className={`inbox-tab ${inboxFilterStatus === 'Todos' ? 'active' : ''}`} onClick={() => setInboxFilterStatus('Todos')}>Todos ({chats.length})</div>
+                        <button 
+                            onClick={() => fetch(`${BACKEND_URL}/api/whatsapp/sync-previews`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } })}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', marginLeft: 'auto', paddingRight: '15px' }}
+                            title="Sincronizar Mensajes"
+                        >
+                            🔄
+                        </button>
                       </div>
 
                       <div className="inbox-assignee-filters">
@@ -733,19 +764,26 @@ function App() {
                                 className={`chat-item ${selectedChatJid === chat.jid ? 'active' : ''}`}
                                 onClick={() => setSelectedChatJid(chat.jid)}
                               >
-                                <div className="avatar">
-                                  {chat.pushName?.substring(0, 2).toUpperCase() || 'WA'}
+                                <div className="avatar" style={{ background: chat.sentiment === 'verde' ? '#dcf8c6' : (chat.sentiment === 'rojo' ? '#ffebee' : '#f0f2f5') }}>
+                                  {chat.pushName?.substring(0, 1).toUpperCase() || 'W'}
                                 </div>
                                 <div className="chat-info">
                                   <div className="chat-header">
-                                    <span className="contact-name">{chat.pushName || chat.jid.split('@')[0]}</span>
-                                    <span className="time">
+                                    <span className="contact-name" style={{ fontWeight: 600, color: '#111b21', fontSize: '1.05rem' }}>
+                                      {chat.pushName || chat.jid.split('@')[0]}
+                                    </span>
+                                    <span className="time" style={{ fontSize: '0.75rem', opacity: 0.7 }}>
                                       {new Date(chat.lastTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                   </div>
                                   <div className="chat-preview-row">
-                                    <span className={`sentiment-badge bg-${chat.sentiment || 'yellow'}`}></span>
-                                    <p className="last-message" style={{ color: 'var(--text-primary)' }}>{chat.lastMessage || 'Sin mensajes'}</p>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, overflow: 'hidden' }}>
+                                      {chat.role === 'ai' && <span style={{ color: '#53bdeb' }}>✓✓</span>}
+                                      <p className="last-message" style={{ margin: 0, fontSize: '0.85rem', color: '#667781' }}>
+                                        {chat.lastMessage || 'Sin mensajes'}
+                                      </p>
+                                    </div>
+                                    <span className={`sentiment-badge bg-${chat.sentiment || 'yellow'}`} title={`Sentimiento: ${chat.sentiment}`}></span>
                                   </div>
                                 </div>
                               </div>

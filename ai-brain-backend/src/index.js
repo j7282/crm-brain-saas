@@ -229,32 +229,64 @@ async function connectToWhatsApp(forceNew = false) {
             console.log(`[WhatsApp] 📥 RECIBIDO HISTORIAL: ${newChats.length} chats, ${newMessages.length} mensajes.`);
             await addNeuronalLog(`Sincronizando historial masivo...`, 'system');
 
-            // 1. Optimizar Chats (Batching)
-            const chatPromises = newChats.map(chat => 
-                dbUpdate(chatsDb, { jid: chat.id }, { 
-                    $set: { 
-                        jid: chat.id, 
-                        pushName: chat.name || chat.id.split('@')[0],
-                        lastTimestamp: new Date()
-                    } 
-                }, { upsert: true })
-            );
-            await Promise.all(chatPromises.slice(0, 100)); // Procesar primeros 100 chats rápido
+            // 1. Crear mapa de contactos para nombres reales
+            const contactMap = {};
+            if (contacts) {
+                contacts.forEach(c => {
+                    contactMap[c.id] = c.name || c.notify || c.verifiedName;
+                });
+            }
+
+            // 2. Optimizar Chats (Batching) con extracción de último mensaje
+            const chatPromises = newChats.map(async chat => {
+                // Intentar encontrar el último mensaje en el bloque de mensajes recibidos
+                const chatMsgs = newMessages.filter(m => m.key.remoteJid === chat.id);
+                let lastText = "";
+                let lastTime = chat.tcStr ? parseInt(chat.tcStr) * 1000 : (chat.timestamp ? chat.timestamp * 1000 : Date.now());
+
+                if (chatMsgs.length > 0) {
+                    const lastM = chatMsgs[chatMsgs.length - 1];
+                    lastText = lastM.message?.conversation || 
+                               lastM.message?.extendedTextMessage?.text || 
+                               lastM.message?.imageMessage?.caption || 
+                               lastM.message?.videoMessage?.caption ||
+                               lastM.message?.buttonsResponseMessage?.selectedButtonId ||
+                               "📷 Multimedia / Otro";
+                    if (lastM.messageTimestamp) lastTime = lastM.messageTimestamp * 1000;
+                } else {
+                    // Si no hay mensajes en este bloque, ver si Baileys incluyó una previsualización en el chat
+                    lastText = chat.conversation || "";
+                }
+
+                const updateData = {
+                    jid: chat.id,
+                    pushName: contactMap[chat.id] || chat.name || chat.id.split('@')[0],
+                    lastTimestamp: new Date(lastTime)
+                };
+
+                if (lastText) {
+                    updateData.lastMessage = lastText;
+                }
+
+                // Usar $set solo para lo que tenemos, para no borrar lastMessage si ya existía y este bloque viene vacío
+                return dbUpdate(chatsDb, { jid: chat.id }, { $set: updateData }, { upsert: true });
+            });
+            
+            await Promise.all(chatPromises.slice(0, 200)); 
             
             // Emitir los chats sincronizados al frontend de inmediato
-            const allChats = await dbFind(chatsDb, {});
-            io.emit('all-chats', allChats); 
+            const allChatsFromDb = await dbFind(chatsDb, {});
+            io.emit('all-chats', allChatsFromDb); 
 
-            // 2. Optimizar Mensajes (Bulk Insert)
+            // 3. Optimizar Mensajes (Bulk Insert)
             const messagesToInsert = [];
-            // Limitamos a los últimos N mensajes totales para no colapsar NeDB en un solo insert
-            const historyLimit = 1000; 
+            const historyLimit = 1500; 
             const recentMessages = newMessages.slice(-historyLimit);
 
             for (const m of recentMessages) {
                 if (!m.message) continue;
                 const from = m.key.remoteJid;
-                const text = m.message.conversation || m.message.extendedTextMessage?.text;
+                const text = m.message.conversation || m.message.extendedTextMessage?.text || m.message.imageMessage?.caption;
                 if (text) {
                     messagesToInsert.push({
                         jid: from,
@@ -267,15 +299,16 @@ async function connectToWhatsApp(forceNew = false) {
 
             if (messagesToInsert.length > 0) {
                 try {
-                    await dbInsert(messagesDb, messagesToInsert); // Bulk Insert de NeDB
+                    await messagesDb.remove({}, { multi: true }); // Limpiar historia vieja para frescura total
+                    await dbInsert(messagesDb, messagesToInsert);
                     io.emit('history-sync-complete', { count: messagesToInsert.length });
-                    console.log(`[WhatsApp] ✅ Bulk insert exitoso: ${messagesToInsert.length} mensajes.`);
+                    console.log(`[WhatsApp] ✅ Sincronización masiva exitosa.`);
                 } catch (err) {
                     console.error('[WhatsApp] Error en bulk insert:', err.message);
                 }
             }
 
-            await addNeuronalLog(`Sincronización de historial completada (${messagesToInsert.length} mensajes). Darwin está listo.`, 'system');
+            await addNeuronalLog(`Sincronización de historial completada. Darwin está listo.`, 'system');
         });
 
         waSocket.ev.on('messages.upsert', async m => {
@@ -326,13 +359,14 @@ async function connectToWhatsApp(forceNew = false) {
                         jid: from, 
                         lastMessage: text, 
                         lastTimestamp: new Date(),
-                        pushName: msg.pushName || from.split('@')[0]
+                        pushName: msg.pushName || from.split('@')[0],
+                        lastRole: 'client'
                     } 
                 }, { upsert: true });
 
                 // NOTIFICAR AL DASHBOARD EN TIEMPO REAL
                 io.emit('new-message', msgData);
-                io.emit('chat-update', { jid: from, lastMessage: text, lastTimestamp: new Date() });
+                io.emit('chat-update', { jid: from, lastMessage: text, lastTimestamp: new Date(), pushName: msg.pushName });
 
                 try {
                     const brains = await dbFind(brainsDb, {});
@@ -603,6 +637,45 @@ app.patch('/api/brains/:id/traits', auth, async (req, res) => {
         console.error("Error actualizando rasgos:", error);
         res.status(500).json({ error: 'Error al actualizar rasgos.' });
     }
+});
+
+/**
+ * RECONSTRUIR VISTA PREVIA DE CHATS
+ * Busca el último mensaje real en la DB para cada chat
+ */
+async function syncChatPreviews() {
+    console.log('[WhatsApp] 🔍 Reconstruyendo previsualizaciones de chats...');
+    try {
+        const chats = await dbFind(chatsDb, {});
+        for (const chat of chats) {
+            const msgs = await dbFind(messagesDb, { jid: chat.jid });
+            if (msgs.length > 0) {
+                msgs.sort((a, b) => b.timestamp - a.timestamp);
+                const last = msgs[0];
+                await dbUpdate(chatsDb, { jid: chat.jid }, { 
+                    $set: { 
+                        lastMessage: last.text, 
+                        lastTimestamp: last.timestamp 
+                    } 
+                });
+            }
+        }
+        console.log('[WhatsApp] ✅ Previsualizaciones actualizadas.');
+        // Notificar al frontend
+        const allChats = await dbFind(chatsDb, {});
+        io.emit('all-chats', allChats);
+    } catch (err) {
+        console.error('[WhatsApp] Error reconstruyendo previews:', err.message);
+    }
+}
+
+// Ejecutar reconstrucción periódicamente (cada 5 minutos) y al inicio
+setTimeout(syncChatPreviews, 10000);
+setInterval(syncChatPreviews, 300000);
+
+app.post('/api/whatsapp/sync-previews', auth, async (req, res) => {
+    await syncChatPreviews();
+    res.json({ success: true, message: 'Sincronización manual iniciada.' });
 });
 
 app.post('/api/whatsapp/send', auth, async (req, res) => {
