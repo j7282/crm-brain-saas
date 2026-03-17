@@ -16,7 +16,9 @@ const {
     DisconnectReason, 
     fetchLatestBaileysVersion,
     downloadMediaMessage,
-    downloadContentFromMessage 
+    downloadContentFromMessage,
+    BufferJSON,
+    proto
 } = require('@whiskeysockets/baileys');
 const QRCode = require('qrcode');
 const pino = require('pino');
@@ -55,13 +57,80 @@ const MUser = mongoose.model('User', UserSchema);
 const BrainSchema = new mongoose.Schema({
     userId: String,
     name: String,
-    config: Object,
-    knowledge: String,
+    nombre: String,
+    catalogo: Array,
+    shortcuts: Array,
+    trainingData: Array,
+    knowledgeBase: Array,
     personalityTraits: Object,
-    isMirrorMode: { type: Boolean, default: false },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: Date
 });
 const MBrain = mongoose.model('Brain', BrainSchema);
+
+// Schema para Sesión Inmortal J7282
+const SessionSchema = new mongoose.Schema({
+    id: { type: String, unique: true, required: true },
+    data: { type: String, required: true }
+});
+const MSession = mongoose.model('Session', SessionSchema);
+
+// Helper para Auth State en MongoDB J7282
+async function useMongoDBAuthState() {
+    const writeData = (data, id) => {
+        return MSession.updateOne(
+            { id },
+            { $set: { data: JSON.stringify(data, BufferJSON.replacer) } },
+            { upsert: true }
+        );
+    };
+
+    const readData = async (id) => {
+        const res = await MSession.findOne({ id });
+        return res ? JSON.parse(res.data, BufferJSON.reviver) : null;
+    };
+
+    const removeData = async (id) => {
+        await MSession.deleteOne({ id });
+    };
+
+    const creds = await readData('creds') || (await useMultiFileAuthState(WA_AUTH_DIR)).state.creds;
+
+    return {
+        state: {
+            creds,
+            keys: {
+                get: async (type, ids) => {
+                    const data = {};
+                    await Promise.all(
+                        ids.map(async id => {
+                            let value = await readData(`${type}-${id}`);
+                            if (type === 'app-state-sync-key' && value) {
+                                value = proto.Message.AppStateSyncKeyData.fromObject(value);
+                            }
+                            data[id] = value;
+                        })
+                    );
+                    return data;
+                },
+                set: async (data) => {
+                    const promises = [];
+                    for (const type in data) {
+                        for (const id in data[type]) {
+                            const value = data[type][id];
+                            if (value) {
+                                promises.push(writeData(value, `${type}-${id}`));
+                            } else {
+                                promises.push(removeData(`${type}-${id}`));
+                            }
+                        }
+                    }
+                    await Promise.all(promises);
+                }
+            }
+        },
+        saveCreds: () => writeData(creds, 'creds')
+    };
+}
 
 const NeuronalLogSchema = new mongoose.Schema({
     message: String,
@@ -231,10 +300,20 @@ async function connectToWhatsApp(forceNew = false) {
     isConnecting = true;
     connectionStatus = 'connecting';
 
-    if (forceNew || !fs.existsSync(WA_AUTH_DIR)) clearWASession();
-
     try {
-        const { state, saveCreds } = await useMultiFileAuthState(WA_AUTH_DIR);
+        // PRIORIDAD: Sesión Inmortal en MongoDB si está conectado J7282
+        let state, saveCreds;
+        if (isMongoConnected) {
+            console.log('[WhatsApp] 🔐 Usando Motor de Sesión Inmortal (MongoDB)');
+            const mongoAuth = await useMongoDBAuthState();
+            state = mongoAuth.state;
+            saveCreds = mongoAuth.saveCreds;
+        } else {
+            console.log('[WhatsApp] 📂 Usando Almacenamiento Local (Carpeta wa_auth)');
+            const localAuth = await useMultiFileAuthState(WA_AUTH_DIR);
+            state = localAuth.state;
+            saveCreds = localAuth.saveCreds;
+        }
 
         if (waSocket) {
             console.log('[WhatsApp] Limpiando socket previo...');
