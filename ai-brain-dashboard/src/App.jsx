@@ -837,6 +837,16 @@ function App() {
                                   </div>
                                   <div className="message-meta">
                                     <span className="message-time">
+                                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase()}
+                                    </span>
+                                    {(msg.role === 'ai' || msg.role === 'agent') && (
+                                      <span className="message-status">✓✓</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                                    <span className="message-time">
                                       {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                   </div>

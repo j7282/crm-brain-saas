@@ -174,12 +174,12 @@ async function connectToWhatsApp(forceNew = false) {
             printQRInTerminal: true,
             logger: pino({ level: 'info' }),
             browser: ['Ubuntu', 'Chrome', '110.0.5563.147'],
-            connectTimeoutMs: 60000,
-            defaultQueryTimeoutMs: 30000,
+            connectTimeoutMs: 120000,
+            defaultQueryTimeoutMs: 60000,
             keepAliveIntervalMs: 30000,
-            generateHighQualityLinkPreview: false,
-            syncFullHistory: true, // Activamos sincronización total de historial
-            shouldSyncHistoryMessage: () => true // Forzar descarga de mensajes
+            generateHighQualityLinkPreview: true,
+            syncFullHistory: true, 
+            shouldSyncHistoryMessage: () => true 
         });
 
         waSocket.ev.on('connection.update', async (update) => {
@@ -190,9 +190,20 @@ async function connectToWhatsApp(forceNew = false) {
                     currentQR = await QRCode.toDataURL(qr);
                     connectionStatus = 'qr';
                     console.log('[WhatsApp] ✨ NUEVO QR GENERADO ✨');
+                    await addNeuronalLog('Nuevo código QR generado. Escanea para conectar.', 'system');
                 } catch (qrErr) {
                     console.error('[WhatsApp] ❌ Error convirtiendo QR:', qrErr.message);
                 }
+            }
+
+            if (connection === 'open') {
+                console.log('[WhatsApp] ✅ CONEXIÓN ABIERTA');
+                connectionStatus = 'connected';
+                currentQR = null;
+                isConnecting = false;
+                await addNeuronalLog('WhatsApp conectado exitosamente. Sincronizando chats...', 'system');
+                // Al conectar, forzar una actualización de previsualizaciones
+                setTimeout(syncChatPreviews, 5000);
             }
 
             if (connection === 'close') {
