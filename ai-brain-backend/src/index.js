@@ -494,17 +494,26 @@ app.get('/api/debug/db-stats', auth, async (req, res) => {
     }
 });
 
-app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'online',
-        version: '1.6.0-SYNC-FIX',
-        database: 'connected (local NeDB)',
-        services: {
-            cerebro: !!process.env.GEMINI_API_KEY,
-            oido: !!process.env.OPENAI_API_KEY,
-            voz: !!process.env.ELEVENLABS_API_KEY
-        }
-    });
+app.get('/api/health', async (req, res) => {
+    try {
+        const chatsCount = await dbCount(chatsDb, {});
+        const msgsCount = await dbCount(messagesDb, {});
+        res.json({
+            status: 'online',
+            version: '1.6.2-DIAGNOSTIC',
+            database: {
+                chats: chatsCount,
+                messages: msgsCount
+            },
+            services: {
+                cerebro: !!process.env.GEMINI_API_KEY,
+                oido: !!process.env.OPENAI_API_KEY,
+                voz: !!process.env.ELEVENLABS_API_KEY
+            }
+        });
+    } catch (e) {
+        res.json({ status: 'partial', error: e.message });
+    }
 });
 
 /**
