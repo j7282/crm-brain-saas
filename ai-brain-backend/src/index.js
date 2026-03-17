@@ -268,7 +268,15 @@ async function connectToWhatsApp(forceNew = false) {
                         lastText = lastM.message?.conversation || 
                                    lastM.message?.extendedTextMessage?.text || 
                                    lastM.message?.imageMessage?.caption || 
-                                   lastM.message?.videoMessage?.caption || "Multimedia";
+                                   lastM.message?.videoMessage?.caption;
+
+                        if (!lastText) {
+                            if (lastM.message?.imageMessage) lastText = "📷 Imagen";
+                            else if (lastM.message?.videoMessage) lastText = "🎥 Video";
+                            else if (lastM.message?.audioMessage) lastText = "🎤 Audio";
+                            else if (lastM.message?.documentMessage) lastText = "📄 Documento";
+                            else lastText = "Multimedia";
+                        }
                         if (lastM.messageTimestamp) lastTime = lastM.messageTimestamp * 1000;
                     }
 
@@ -298,14 +306,34 @@ async function connectToWhatsApp(forceNew = false) {
 
             for (const m of recentMessages) {
                 if (!m.message) continue;
-                const from = m.key.remoteJid;
-                const text = m.message.conversation || m.message.extendedTextMessage?.text || m.message.imageMessage?.caption;
-                if (text) {
+                // Extracción de texto + Multimedia para el historial
+                let hText = m.message?.conversation || 
+                           m.message?.extendedTextMessage?.text || 
+                           m.message?.imageMessage?.caption || 
+                           m.message?.videoMessage?.caption;
+                
+                let hIsMultimedia = false;
+                let hMediaType = null;
+
+                if (!hText) {
+                    if (m.message?.imageMessage) { hText = "📷 Imagen"; hIsMultimedia = true; hMediaType = 'image'; }
+                    else if (m.message?.videoMessage) { hText = "🎥 Video"; hIsMultimedia = true; hMediaType = 'video'; }
+                    else if (m.message?.audioMessage) { hText = "🎤 Audio"; hIsMultimedia = true; hMediaType = 'audio'; }
+                    else if (m.message?.documentMessage) { hText = "📄 Documento"; hIsMultimedia = true; hMediaType = 'document'; }
+                    else if (m.message?.stickerMessage) { hText = "🧧 Sticker"; hIsMultimedia = true; hMediaType = 'sticker'; }
+                    else if (m.message?.contactMessage || m.message?.contactsArrayMessage) { hText = "👤 Contacto"; hIsMultimedia = true; hMediaType = 'contact'; }
+                    else if (m.message?.locationMessage) { hText = "📍 Ubicación"; hIsMultimedia = true; hMediaType = 'location'; }
+                    else { hText = "Multimedia"; hIsMultimedia = true; } // Fallback genérico
+                }
+
+                if (hText) {
                     messagesToInsert.push({
-                        jid: from,
-                        text,
+                        jid: m.key.remoteJid,
+                        text: hText,
                         role: m.key.fromMe ? 'ai' : 'client',
-                        timestamp: new Date(m.messageTimestamp * 1000 || Date.now())
+                        timestamp: new Date((m.messageTimestamp || Date.now() / 1000) * 1000),
+                        isMultimedia: hIsMultimedia,
+                        mediaType: hMediaType
                     });
                 }
             }
@@ -342,8 +370,8 @@ async function connectToWhatsApp(forceNew = false) {
 
             const from = msg.key.remoteJid;
 
-            // Extracción ULTRA-robusta de texto
-            const text = msg.message.conversation ||
+            // Extracción ULTRA-robusta de texto + Detección Multimedia
+            let text = msg.message.conversation ||
                 msg.message.extendedTextMessage?.text ||
                 msg.message.imageMessage?.caption ||
                 msg.message.videoMessage?.caption ||
@@ -355,6 +383,19 @@ async function connectToWhatsApp(forceNew = false) {
                 msg.message.viewOnceMessageV2?.message?.conversation ||
                 msg.message.documentWithCaptionMessage?.message?.documentMessage?.caption;
 
+            let isMultimedia = false;
+            let mediaType = null;
+            
+            if (!text) {
+                if (msg.message.imageMessage) { text = "📷 Imagen"; isMultimedia = true; mediaType = 'image'; }
+                else if (msg.message.videoMessage) { text = "🎥 Video"; isMultimedia = true; mediaType = 'video'; }
+                else if (msg.message.audioMessage) { text = "🎤 Audio / Nota de voz"; isMultimedia = true; mediaType = 'audio'; }
+                else if (msg.message.documentMessage) { text = "📄 Documento"; isMultimedia = true; mediaType = 'document'; }
+                else if (msg.message.stickerMessage) { text = "🧧 Sticker"; isMultimedia = true; mediaType = 'sticker'; }
+                else if (msg.message.contactMessage || msg.message.contactsArrayMessage) { text = "👤 Contacto"; isMultimedia = true; mediaType = 'contact'; }
+                else if (msg.message.locationMessage) { text = "📍 Ubicación"; isMultimedia = true; mediaType = 'location'; }
+            }
+
             if (text) {
                 console.log(`[WhatsApp] 📥 RECIBIDO de ${from}: "${text}"`);
                 
@@ -364,7 +405,9 @@ async function connectToWhatsApp(forceNew = false) {
                     text,
                     role: 'client',
                     timestamp: new Date(),
-                    pushName: msg.pushName
+                    pushName: msg.pushName,
+                    isMultimedia,
+                    mediaType
                 };
                 await dbInsert(messagesDb, msgData);
                 
@@ -500,7 +543,7 @@ app.get('/api/health', async (req, res) => {
         const msgsCount = await dbCount(messagesDb, {});
         res.json({
             status: 'online',
-            version: '1.6.3-FINAL',
+            version: '1.6.4-MULTIMEDIA',
             waStatus: connectionStatus,
             database: {
                 chats: chatsCount,

@@ -148,7 +148,10 @@ function App() {
             pollCount = 0;
             fetch(`${BACKEND_URL}/api/whatsapp/reset`, {
               method: 'POST',
-              headers: { 'Authorization': `Bearer ${token}` }
+              headers: {
+                'X-App-Version': '1.6.4-MULTIMEDIA',
+                'Authorization': `Bearer ${token}`
+              }
             });
           }
         }
@@ -879,9 +882,23 @@ function App() {
                             {realMessages.map((msg, idx) => (
                               <div key={idx} className={`message-container ${msg.role}`}>
                                 <div className={`message ${msg.role}`}>
-                                  <div className="message-content">
-                                    {msg.text}
-                                  </div>
+                                    <div className={`message-content ${msg.isMultimedia ? 'multimedia' : ''}`}>
+                                      {msg.isMultimedia && (
+                                        <span style={{ 
+                                          display: 'block', 
+                                          fontSize: '0.85rem', 
+                                          fontStyle: 'italic', 
+                                          opacity: 0.8,
+                                          marginBottom: '4px'
+                                        }}>
+                                          {msg.mediaType === 'image' && '📷 Imagen'}
+                                          {msg.mediaType === 'audio' && '🎤 Nota de voz'}
+                                          {msg.mediaType === 'video' && '🎥 Video'}
+                                          {msg.mediaType === 'document' && '📄 Documento'}
+                                        </span>
+                                      )}
+                                      {msg.text}
+                                    </div>
                                   <div className="message-meta">
                                     <span className="message-time">
                                       {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase()}
