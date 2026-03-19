@@ -1,13 +1,1397 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ai-brain-dashboard</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Darwin · CRM Neuronal WhatsApp</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#070a0f;
+  --bg2:#0b0f17;
+  --bg3:#0f1520;
+  --bg4:#141c28;
+  --card:#0d1320;
+  --border:#1a2236;
+  --border2:#1e2a40;
+  --border3:#243050;
+  --green:#00e87a;
+  --green2:#00c265;
+  --green-bg:rgba(0,232,122,.07);
+  --green-glow:rgba(0,232,122,.2);
+  --blue:#3d8bff;
+  --blue-bg:rgba(61,139,255,.08);
+  --amber:#ffaa00;
+  --amber-bg:rgba(255,170,0,.08);
+  --red:#ff4757;
+  --red-bg:rgba(255,71,87,.08);
+  --purple:#a855f7;
+  --purple-bg:rgba(168,85,247,.08);
+  --text:#e2e8f4;
+  --text2:#8494b0;
+  --text3:#3d4f6a;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'Plus Jakarta Sans',sans-serif;
+  --radius:12px;
+  --radius-sm:8px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;overflow-x:hidden;}
+
+/* ─── UTILS ─── */
+.hidden{display:none!important;}
+.flex{display:flex;}
+.col{flex-direction:column;}
+.items-center{align-items:center;}
+.justify-between{justify-content:space-between;}
+.gap4{gap:4px;}.gap8{gap:8px;}.gap12{gap:12px;}.gap16{gap:16px;}.gap20{gap:20px;}.gap24{gap:24px;}
+.w100{width:100%;}
+.mono{font-family:var(--mono);}
+.text-green{color:var(--green);}
+.text-blue{color:var(--blue);}
+.text-amber{color:var(--amber);}
+.text-red{color:var(--red);}
+.text-muted{color:var(--text2);}
+.text-dim{color:var(--text3);}
+.fw6{font-weight:600;}
+.fw7{font-weight:700;}
+.fw8{font-weight:800;}
+.fs10{font-size:10px;}.fs11{font-size:11px;}.fs12{font-size:12px;}.fs13{font-size:13px;}.fs22{font-size:22px;}.fs28{font-size:28px;}
+.letter2{letter-spacing:2px;}.letter1{letter-spacing:1px;}
+.upper{text-transform:uppercase;}
+.lh16{line-height:1.6;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes pulse{0%,100%{opacity:.6;}50%{opacity:1;}}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:.5;}50%{transform:scale(1.08);opacity:.9;}}
+@keyframes scan{0%{top:0;}100%{top:100%;}}
+.fade-up{animation:fadeUp .35s ease both;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:var(--border3);border-radius:2px;}
+
+/* ─── INPUTS ─── */
+input,textarea,select{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:var(--sans);font-size:13px;padding:11px 14px;outline:none;width:100%;transition:border-color .2s;}
+input:focus,textarea:focus,select:focus{border-color:rgba(0,232,122,.35);}
+input::placeholder,textarea::placeholder{color:var(--text3);}
+textarea{resize:vertical;line-height:1.6;}
+select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238494b0' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;}
+label{font-size:12px;color:var(--text2);margin-bottom:5px;display:block;font-weight:500;}
+
+/* ─── BUTTONS ─── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 18px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:all .18s;white-space:nowrap;}
+.btn:hover{border-color:var(--border3);color:var(--text);background:var(--bg3);}
+.btn-primary{background:var(--green);color:#000;border-color:var(--green);font-weight:700;}
+.btn-primary:hover{background:var(--green2);border-color:var(--green2);color:#000;}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;}
+.btn-ghost{border:none;background:transparent;padding:8px 12px;}
+.btn-ghost:hover{background:var(--bg3);}
+.btn-danger{border-color:var(--red);color:var(--red);}
+.btn-danger:hover{background:var(--red-bg);}
+.btn-full{width:100%;padding:13px;}
+
+/* ─── CARDS ─── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.card-sm{padding:14px 16px;}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.card-title{font-size:12px;font-weight:600;color:var(--text);letter-spacing:.3px;}
+
+/* ─── BADGES ─── */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;letter-spacing:.3px;font-family:var(--mono);}
+.badge-green{background:var(--green-bg);color:var(--green);border:1px solid rgba(0,232,122,.15);}
+.badge-blue{background:var(--blue-bg);color:var(--blue);border:1px solid rgba(61,139,255,.15);}
+.badge-amber{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(255,170,0,.15);}
+.badge-red{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,71,87,.15);}
+.badge-purple{background:var(--purple-bg);color:var(--purple);border:1px solid rgba(168,85,247,.15);}
+.badge-gray{background:var(--bg3);color:var(--text2);border:1px solid var(--border2);}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.dot-green{background:var(--green);animation:pulse 2s ease infinite;}
+.dot-gray{background:var(--text3);}
+.dot-amber{background:var(--amber);}
+.dot-red{background:var(--red);}
+
+/* ─── PROGRESS ─── */
+.prog-track{height:5px;background:var(--border2);border-radius:3px;}
+.prog-fill{height:5px;border-radius:3px;transition:width .6s ease;}
+.prog-green{background:var(--green);}
+.prog-blue{background:var(--blue);}
+.prog-amber{background:var(--amber);}
+.prog-red{background:var(--red);}
+
+/* ══════════════════════════════════════
+   AUTH SCREEN
+══════════════════════════════════════ */
+#screen-auth{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);position:relative;overflow:hidden;}
+#screen-auth::before{content:'';position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(0,232,122,.06) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;}
+.auth-box{width:420px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:36px;position:relative;z-index:1;}
+.auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:28px;}
+.auth-logo-icon{width:40px;height:40px;border:1.5px solid var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;}
+.auth-logo-icon::after{content:'';position:absolute;inset:4px;border-radius:50%;background:var(--green-bg);animation:breathe 3s ease infinite;}
+.auth-logo-icon svg{width:18px;height:18px;stroke:var(--green);position:relative;z-index:1;}
+.auth-logo-name{font-size:20px;font-weight:800;color:#fff;}
+.auth-logo-name span{color:var(--green);}
+.auth-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:24px;}
+.auth-tab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;}
+.auth-tab.active{color:var(--green);border-bottom-color:var(--green);}
+.auth-form{display:flex;flex-direction:column;gap:14px;}
+.auth-divider{text-align:center;font-size:11px;color:var(--text3);position:relative;margin:4px 0;}
+.auth-divider::before{content:'';position:absolute;left:0;top:50%;height:1px;background:var(--border);width:42%;}
+.auth-divider::after{content:'';position:absolute;right:0;top:50%;height:1px;background:var(--border);width:42%;}
+.plan-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px;}
+.plan-card{border:1.5px solid var(--border2);border-radius:var(--radius-sm);padding:12px;cursor:pointer;transition:all .2s;}
+.plan-card.selected{border-color:var(--green);background:var(--green-bg);}
+.plan-card .plan-name{font-size:12px;font-weight:700;color:var(--text);}
+.plan-card .plan-price{font-size:18px;font-weight:800;color:var(--green);font-family:var(--mono);margin-top:2px;}
+.plan-card .plan-desc{font-size:10px;color:var(--text3);margin-top:3px;}
+
+/* ══════════════════════════════════════
+   APP LAYOUT
+══════════════════════════════════════ */
+#app{display:none;height:100vh;flex-direction:column;}
+.topbar{height:56px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0;z-index:100;}
+.topbar-logo{font-size:16px;font-weight:800;color:#fff;display:flex;align-items:center;gap:10px;}
+.topbar-logo span{color:var(--green);}
+.topbar-logo-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.user-pill{display:flex;align-items:center;gap:8px;padding:5px 10px 5px 5px;border-radius:20px;border:1px solid var(--border);background:var(--bg3);cursor:pointer;}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:var(--green-bg);border:1px solid rgba(0,232,122,.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--green);}
+.app-body{display:flex;flex:1;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{width:230px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+.sidebar-section{padding:16px 10px 6px;font-size:9px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;font-weight:600;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;margin:1px 4px;border-radius:var(--radius-sm);cursor:pointer;color:var(--text2);font-size:13px;font-weight:500;transition:all .15s;border:1px solid transparent;}
+.nav-item:hover{background:var(--bg3);color:var(--text);}
+.nav-item.active{background:var(--green-bg);color:var(--green);border-color:rgba(0,232,122,.12);}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;}
+.sidebar-wa-status{margin:12px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;}
+.wa-connected{display:flex;align-items:center;gap:8px;}
+.wa-connected .wa-icon{width:32px;height:32px;border-radius:50%;background:rgba(37,211,102,.1);display:flex;align-items:center;justify-content:center;}
+.wa-connected .wa-icon svg{width:16px;height:16px;}
+.sidebar-bottom{margin-top:auto;padding:12px;border-top:1px solid var(--border);}
+
+/* MAIN CONTENT */
+.main-content{flex:1;overflow-y:auto;padding:24px;}
+.page{display:none;}
+.page.active{display:block;}
+.page-header{margin-bottom:24px;}
+.page-title{font-size:20px;font-weight:800;color:var(--text);}
+.page-sub{font-size:13px;color:var(--text2);margin-top:4px;}
+
+/* ══════════════════════════════════════
+   DASHBOARD
+══════════════════════════════════════ */
+.metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+.metric-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
+.metric-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px;}
+.metric-value{font-size:26px;font-weight:800;font-family:var(--mono);line-height:1;}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:6px;display:flex;align-items:center;gap:4px;}
+.trend-up{color:var(--green);}
+.trend-dn{color:var(--red);}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.grid-3{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;margin-bottom:16px;}
+
+/* ══════════════════════════════════════
+   WHATSAPP CONNECT
+══════════════════════════════════════ */
+.wa-connect-center{max-width:540px;margin:0 auto;}
+.qr-frame{width:220px;height:220px;border:2px solid var(--border2);border-radius:var(--radius);margin:0 auto;position:relative;background:var(--bg3);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.qr-corners::before,.qr-corners::after{content:'';position:absolute;width:20px;height:20px;border-color:var(--green);border-style:solid;border-width:2px;}
+.qr-corners::before{top:8px;left:8px;border-right:none;border-bottom:none;}
+.qr-corners::after{bottom:8px;right:8px;border-left:none;border-top:none;}
+.qr-scan-line{position:absolute;left:10px;right:10px;height:2px;background:linear-gradient(90deg,transparent,var(--green),transparent);animation:scan 2s ease-in-out infinite;top:0;}
+.qr-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;padding:20px;}
+.qr-cell{aspect-ratio:1;border-radius:1px;}
+.qr-dark{background:var(--text);}
+.qr-light{background:transparent;}
+.steps-list{display:flex;flex-direction:column;gap:12px;margin-top:20px;}
+.step-item{display:flex;align-items:flex-start;gap:12px;padding:14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);}
+.step-num{width:24px;height:24px;border-radius:50%;background:var(--green-bg);border:1px solid rgba(0,232,122,.2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--green);flex-shrink:0;font-family:var(--mono);}
+.step-content .step-title{font-size:13px;font-weight:600;color:var(--text);}
+.step-content .step-desc{font-size:11px;color:var(--text2);margin-top:2px;line-height:1.5;}
+
+/* ══════════════════════════════════════
+   BRAIN / DNA
+══════════════════════════════════════ */
+.brain-hero{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px;position:relative;overflow:hidden;}
+.brain-hero::before{content:'';position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(0,232,122,.06) 0%,transparent 70%);}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
+.mode-card{background:var(--card);border:2px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:all .2s;position:relative;}
+.mode-card:hover{border-color:var(--border3);}
+.mode-card.selected{border-color:var(--green);background:var(--green-bg);}
+.mode-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;}
+.mode-icon svg{width:22px;height:22px;}
+.mode-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.mode-desc{font-size:12px;color:var(--text2);line-height:1.5;}
+.mode-badge{position:absolute;top:12px;right:12px;}
+.days-selector{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+.day-chip{padding:5px 14px;border-radius:20px;border:1px solid var(--border2);font-family:var(--mono);font-size:11px;color:var(--text2);cursor:pointer;transition:all .2s;}
+.day-chip.active{border-color:var(--green);background:var(--green-bg);color:var(--green);}
+
+/* ══════════════════════════════════════
+   AGENT BRAIN CONFIG
+══════════════════════════════════════ */
+.brain-config-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.slider-group{display:flex;flex-direction:column;gap:10px;}
+.slider-row{display:flex;flex-direction:column;gap:5px;}
+.slider-header{display:flex;justify-content:space-between;align-items:center;font-size:12px;}
+.slider-label{color:var(--text2);font-weight:500;}
+.slider-val{font-family:var(--mono);font-size:11px;color:var(--green);}
+input[type=range]{accent-color:var(--green);height:4px;padding:0;border:none;background:none;width:100%;}
+.feature-list{display:flex;flex-direction:column;gap:8px;}
+.feature-toggle{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);}
+.feature-info .feature-name{font-size:13px;font-weight:500;color:var(--text);}
+.feature-info .feature-sub{font-size:11px;color:var(--text2);margin-top:1px;}
+.toggle-switch{width:38px;height:21px;background:var(--border2);border-radius:11px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.toggle-switch.on{background:var(--green);}
+.toggle-switch::after{content:'';position:absolute;width:15px;height:15px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left .2s;}
+.toggle-switch.on::after{left:20px;}
+
+/* ══════════════════════════════════════
+   CONVERSATIONS / KANBAN
+══════════════════════════════════════ */
+.kanban{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;overflow-x:auto;padding-bottom:8px;}
+.k-col{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);min-width:180px;}
+.k-head{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.k-head-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.k-count{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:10px;background:var(--bg3);}
+.k-body{padding:8px;display:flex;flex-direction:column;gap:7px;min-height:100px;}
+.k-card{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;cursor:pointer;transition:border-color .15s;}
+.k-card:hover{border-color:var(--green);}
+.k-card-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.k-card-meta{font-size:10px;color:var(--text3);}
+.k-card-ai{font-size:10px;color:var(--green);margin-top:5px;font-style:italic;}
+.k-card-time{font-size:9px;color:var(--text3);font-family:var(--mono);margin-top:4px;}
+
+/* ══════════════════════════════════════
+   API QUOTAS
+══════════════════════════════════════ */
+.api-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+.api-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.api-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.api-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.api-name{font-size:14px;font-weight:700;color:var(--text);}
+.api-model{font-size:11px;color:var(--text2);font-family:var(--mono);}
+.api-stat{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
+.api-stat-row{display:flex;justify-content:space-between;font-size:11px;color:var(--text2);}
+.api-stat-val{font-family:var(--mono);color:var(--text);}
+.api-alert{font-size:11px;padding:8px 10px;border-radius:6px;margin-top:8px;}
+.api-alert-amber{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(255,170,0,.15);}
+.api-alert-red{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,71,87,.15);}
+.api-alert-green{background:var(--green-bg);color:var(--green);border:1px solid rgba(0,232,122,.15);}
+.api-users-table{width:100%;border-collapse:collapse;}
+.api-users-table th{text-align:left;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;padding:8px 12px;border-bottom:1px solid var(--border);font-weight:600;}
+.api-users-table td{padding:10px 12px;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border);}
+.api-users-table tr:last-child td{border:none;}
+.api-users-table tr:hover td{background:var(--bg3);}
+
+/* ══════════════════════════════════════
+   USERS ADMIN
+══════════════════════════════════════ */
+.users-table{width:100%;border-collapse:collapse;}
+.users-table th{text-align:left;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;padding:10px 14px;border-bottom:1px solid var(--border);font-weight:600;}
+.users-table td{padding:12px 14px;font-size:13px;color:var(--text2);border-bottom:1px solid var(--border);}
+.users-table tr:hover td{background:var(--bg4);}
+.avatar-sm{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;}
+
+/* ══════════════════════════════════════
+   LIVE AGENT
+══════════════════════════════════════ */
+.agent-layout{display:grid;grid-template-columns:320px 1fr;gap:0;height:calc(100vh - 56px - 48px);margin:-24px;overflow:hidden;}
+.agent-sidebar{border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg2);}
+.agent-search{padding:14px;border-bottom:1px solid var(--border);}
+.conv-list{flex:1;overflow-y:auto;}
+.conv-item{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;}
+.conv-item:hover{background:var(--bg3);}
+.conv-item.active{background:var(--green-bg);}
+.conv-avatar{width:38px;height:38px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;}
+.conv-info{flex:1;min-width:0;}
+.conv-name{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;justify-content:space-between;}
+.conv-preview{font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+.conv-time{font-size:10px;color:var(--text3);font-family:var(--mono);}
+.agent-main{display:flex;flex-direction:column;background:var(--bg);}
+.agent-topbar{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);}
+.chat-area{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px;}
+.msg-row{display:flex;flex-direction:column;}
+.msg-row.in{align-items:flex-start;}
+.msg-row.out{align-items:flex-end;}
+.msg-bubble{max-width:72%;padding:11px 15px;border-radius:12px;font-size:13px;line-height:1.6;}
+.msg-in{background:var(--bg3);border:1px solid var(--border);border-radius:12px 12px 12px 3px;color:var(--text2);}
+.msg-out{background:var(--green-bg);border:1px solid rgba(0,232,122,.15);border-radius:12px 12px 3px 12px;color:var(--text);}
+.msg-meta{font-size:10px;color:var(--text3);margin-top:4px;font-family:var(--mono);display:flex;align-items:center;gap:6px;}
+.msg-pattern{font-size:9px;color:var(--green);margin-top:4px;}
+.agent-input-bar{padding:14px 20px;border-top:1px solid var(--border);background:var(--bg2);}
+.agent-input-row{display:flex;gap:10px;align-items:flex-end;}
+.agent-input-row textarea{flex:1;min-height:44px;max-height:100px;font-size:13px;}
+.agent-tools{display:flex;gap:6px;margin-bottom:8px;}
+.agent-tool-btn{padding:5px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s;}
+.agent-tool-btn:hover{border-color:var(--green);color:var(--green);}
+.typing-ind{display:flex;align-items:center;gap:4px;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;width:fit-content;}
+.typing-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.2s ease infinite;}
+.typing-dot:nth-child(2){animation-delay:.2s;}
+.typing-dot:nth-child(3){animation-delay:.4s;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(7,10,15,.85);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-box{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:28px;width:480px;max-width:95vw;position:relative;}
+.modal-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.modal-sub{font-size:12px;color:var(--text2);margin-bottom:20px;}
+.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--text3);cursor:pointer;padding:4px;}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     AUTH SCREEN
+══════════════════════════════════════ -->
+<div id="screen-auth">
+  <div class="auth-box fade-up">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+          <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
+          <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="auth-logo-name">DAR<span>WIN</span></div>
+        <div style="font-size:10px;color:var(--text3);font-family:var(--mono);letter-spacing:1.5px;">CRM NEURONAL · WHATSAPP</div>
+      </div>
+    </div>
+
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-login" onclick="switchAuth('login')">Iniciar Sesión</div>
+      <div class="auth-tab" id="tab-register" onclick="switchAuth('register')">Crear Cuenta</div>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="auth-login">
+      <div class="auth-form">
+        <div><label>Correo electrónico</label><input type="email" id="login-email" placeholder="tu@empresa.com" value="demo@darwin.ai"/></div>
+        <div><label>Contraseña</label><input type="password" id="login-pass" placeholder="••••••••" value="demo123"/></div>
+        <button class="btn btn-primary btn-full" onclick="doLogin()">Entrar al Dashboard</button>
+        <div class="auth-divider">o accede rápido</div>
+        <button class="btn btn-full" onclick="demoLogin()" style="border-color:var(--green);color:var(--green);">
+          Demo sin registro →
+        </button>
+      </div>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="auth-register" class="hidden">
+      <div class="auth-form">
+        <div><label>Nombre completo</label><input type="text" id="reg-name" placeholder="Carlos Mendoza"/></div>
+        <div><label>Empresa / Negocio</label><input type="text" id="reg-company" placeholder="Mi empresa de ventas"/></div>
+        <div><label>Correo electrónico</label><input type="email" id="reg-email" placeholder="tu@empresa.com"/></div>
+        <div><label>Contraseña</label><input type="password" id="reg-pass" placeholder="Mínimo 8 caracteres"/></div>
+        <div>
+          <label>Elige tu plan</label>
+          <div class="plan-grid">
+            <div class="plan-card" onclick="selectPlan('starter',this)">
+              <div class="plan-name">Starter</div>
+              <div class="plan-price">$49<span style="font-size:12px;color:var(--text2)">/mes</span></div>
+              <div class="plan-desc">1 número · 500 msgs/día</div>
+            </div>
+            <div class="plan-card selected" onclick="selectPlan('pro',this)">
+              <div class="plan-name">Pro ⭐</div>
+              <div class="plan-price">$99<span style="font-size:12px;color:var(--text2)">/mes</span></div>
+              <div class="plan-desc">3 números · ilimitado</div>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="doRegister()">Crear cuenta gratis 14 días</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     APP
+══════════════════════════════════════ -->
+<div id="app" style="flex-direction:column;">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-logo">
+      <div class="topbar-logo-dot"></div>
+      DAR<span>WIN</span>
+      <span style="font-size:11px;color:var(--text3);font-weight:400;font-family:var(--mono);margin-left:4px;">CRM</span>
+    </div>
+    <div class="topbar-right">
+      <div id="topbar-wa-status" class="badge badge-amber" style="cursor:pointer;" onclick="showPage('whatsapp')">
+        <span class="dot dot-amber"></span> WhatsApp desconectado
+      </div>
+      <div class="badge badge-gray" id="plan-badge">Plan Pro</div>
+      <div class="user-pill" onclick="showPage('settings')">
+        <div class="user-avatar" id="user-avatar-top">CM</div>
+        <span style="font-size:13px;font-weight:500;" id="user-name-top">Carlos M.</span>
+      </div>
+      <button class="btn btn-ghost" onclick="logout()" style="color:var(--text3);font-size:12px;">Salir</button>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-section">Principal</div>
+      <div class="nav-item active" onclick="showPage('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" onclick="showPage('agent')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Agente en Vivo
+      </div>
+      <div class="nav-item" onclick="showPage('pipeline')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12H3"/><path d="M22 6H3"/><path d="m15 19-3 3-3-3"/><path d="m15 5-3-3-3 3"/></svg>
+        Pipeline
+      </div>
+
+      <div class="sidebar-section">Configuración</div>
+      <div class="nav-item" onclick="showPage('whatsapp')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.37a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16z"/></svg>
+        Conectar WhatsApp
+      </div>
+      <div class="nav-item" onclick="showPage('brain')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>
+        Cerebro Neuronal
+      </div>
+      <div class="nav-item" onclick="showPage('apis')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        APIs & Créditos
+      </div>
+      <div class="nav-item" onclick="showPage('users')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Usuarios
+      </div>
+
+      <div class="sidebar-wa-status" id="sidebar-wa">
+        <div class="wa-connected">
+          <div class="wa-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.5" width="16" height="16"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.37a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16z"/></svg></div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--text2);">Sin WhatsApp</div>
+            <div style="font-size:10px;color:var(--text3);" id="sidebar-wa-sub">Conecta para activar</div>
+          </div>
+        </div>
+      </div>
+      <div class="sidebar-bottom">
+        <div style="font-size:10px;color:var(--text3);font-family:var(--mono);">v2.4.1 · SaaS Edition</div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main-content">
+
+      <!-- ── DASHBOARD ── -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-header">
+          <div class="page-title">Dashboard</div>
+          <div class="page-sub" id="dash-greeting">Buenos días · Tu agente Darwin está listo</div>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">Conversaciones Hoy</div>
+            <div class="metric-value text-blue">47</div>
+            <div class="metric-sub"><span class="trend-up">↑ 18%</span> vs ayer</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Respondidas por Darwin</div>
+            <div class="metric-value text-green">41</div>
+            <div class="metric-sub"><span class="text-green">87%</span> automático</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Cierres del Mes</div>
+            <div class="metric-value text-amber">23</div>
+            <div class="metric-sub"><span class="trend-up">↑ 34%</span> vs mes anterior</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">ADN Clonado</div>
+            <div class="metric-value text-green" id="dash-dna">—</div>
+            <div class="metric-sub" id="dash-dna-sub">Entrena el cerebro</div>
+          </div>
+        </div>
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Estado del Sistema</div></div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div class="flex items-center justify-between" style="padding:10px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
+                <div class="flex items-center gap8"><div class="dot" id="sys-wa-dot" style="background:var(--text3);"></div><span style="font-size:12px;">WhatsApp</span></div>
+                <span class="badge badge-gray" id="sys-wa-badge">Desconectado</span>
+              </div>
+              <div class="flex items-center justify-between" style="padding:10px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
+                <div class="flex items-center gap8"><div class="dot dot-green"></div><span style="font-size:12px;">Gemini 1.5 Flash</span></div>
+                <span class="badge badge-green">Activo</span>
+              </div>
+              <div class="flex items-center justify-between" style="padding:10px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
+                <div class="flex items-center gap8"><div class="dot dot-green"></div><span style="font-size:12px;">Whisper-1 (Voz)</span></div>
+                <span class="badge badge-green">Activo</span>
+              </div>
+              <div class="flex items-center justify-between" style="padding:10px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
+                <div class="flex items-center gap8"><div class="dot dot-amber"></div><span style="font-size:12px;">ElevenLabs</span></div>
+                <span class="badge badge-amber">Cuota baja</span>
+              </div>
+              <div class="flex items-center justify-between" style="padding:10px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
+                <div class="flex items-center gap8"><div class="dot dot-green"></div><span style="font-size:12px;">Mirror Mode</span></div>
+                <span class="badge badge-gray" id="sys-mirror">Inactivo</span>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Actividad Reciente</div></div>
+            <div style="display:flex;flex-direction:column;gap:8px;" id="activity-feed">
+              <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+                <div class="dot dot-green" style="margin-top:4px;flex-shrink:0;"></div>
+                <div><div style="font-size:12px;">Darwin cerró venta con <b>Pedro L.</b></div><div style="font-size:10px;color:var(--text3);font-family:var(--mono);">hace 4 min</div></div>
+              </div>
+              <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+                <div class="dot dot-green" style="margin-top:4px;flex-shrink:0;"></div>
+                <div><div style="font-size:12px;">Nota de voz enviada a <b>Ana R.</b></div><div style="font-size:10px;color:var(--text3);font-family:var(--mono);">hace 12 min</div></div>
+              </div>
+              <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+                <div class="dot" style="background:var(--blue);margin-top:4px;flex-shrink:0;"></div>
+                <div><div style="font-size:12px;">Nuevo prospecto calificado: <b>Luis M.</b></div><div style="font-size:10px;color:var(--text3);font-family:var(--mono);">hace 28 min</div></div>
+              </div>
+              <div style="display:flex;gap:10px;padding:8px 0;">
+                <div class="dot dot-amber" style="margin-top:4px;flex-shrink:0;"></div>
+                <div><div style="font-size:12px;">Catálogo enviado a <b>María G.</b></div><div style="font-size:10px;color:var(--text3);font-family:var(--mono);">hace 45 min</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── WHATSAPP CONNECT ── -->
+      <div class="page" id="page-whatsapp">
+        <div class="page-header">
+          <div class="page-title">Conectar WhatsApp</div>
+          <div class="page-sub">Escanea el código QR con tu WhatsApp para activar el agente Darwin</div>
+        </div>
+        <div class="wa-connect-center">
+          <div class="card" style="text-align:center;padding:32px;">
+            <div style="margin-bottom:20px;">
+              <div class="badge badge-amber" id="qr-status-badge"><span class="dot dot-amber"></span> Esperando conexión</div>
+            </div>
+            <div class="qr-frame qr-corners" id="qr-container">
+              <div class="qr-scan-line"></div>
+              <!-- QR Pattern -->
+              <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="10" y="10" width="60" height="60" rx="4" fill="none" stroke="var(--text)" stroke-width="3"/>
+                <rect x="22" y="22" width="36" height="36" rx="2" fill="var(--text)"/>
+                <rect x="110" y="10" width="60" height="60" rx="4" fill="none" stroke="var(--text)" stroke-width="3"/>
+                <rect x="122" y="22" width="36" height="36" rx="2" fill="var(--text)"/>
+                <rect x="10" y="110" width="60" height="60" rx="4" fill="none" stroke="var(--text)" stroke-width="3"/>
+                <rect x="22" y="122" width="36" height="36" rx="2" fill="var(--text)"/>
+                <rect x="82" y="10" width="8" height="8" fill="var(--text)"/>
+                <rect x="82" y="26" width="8" height="8" fill="var(--text)"/>
+                <rect x="82" y="42" width="8" height="8" fill="var(--text)"/>
+                <rect x="82" y="58" width="8" height="8" fill="var(--text)"/>
+                <rect x="98" y="18" width="8" height="8" fill="var(--text)"/>
+                <rect x="98" y="34" width="8" height="8" fill="var(--text)"/>
+                <rect x="98" y="50" width="8" height="8" fill="var(--text)"/>
+                <rect x="82" y="82" width="8" height="8" fill="var(--text)"/>
+                <rect x="98" y="82" width="8" height="8" fill="var(--text)"/>
+                <rect x="114" y="82" width="8" height="8" fill="var(--text)"/>
+                <rect x="130" y="82" width="8" height="8" fill="var(--text)"/>
+                <rect x="146" y="82" width="8" height="8" fill="var(--text)"/>
+                <rect x="162" y="82" width="8" height="8" fill="var(--text)"/>
+                <rect x="82" y="98" width="8" height="8" fill="var(--text)"/>
+                <rect x="114" y="98" width="8" height="8" fill="var(--text)"/>
+                <rect x="146" y="98" width="8" height="8" fill="var(--text)"/>
+                <rect x="82" y="114" width="8" height="8" fill="var(--text)"/>
+                <rect x="98" y="114" width="8" height="8" fill="var(--text)"/>
+                <rect x="130" y="114" width="8" height="8" fill="var(--text)"/>
+                <rect x="162" y="114" width="8" height="8" fill="var(--text)"/>
+                <rect x="82" y="130" width="8" height="8" fill="var(--text)"/>
+                <rect x="114" y="130" width="8" height="8" fill="var(--text)"/>
+                <rect x="98" y="146" width="8" height="8" fill="var(--text)"/>
+                <rect x="130" y="146" width="8" height="8" fill="var(--text)"/>
+                <rect x="146" y="146" width="8" height="8" fill="var(--text)"/>
+                <rect x="82" y="162" width="8" height="8" fill="var(--text)"/>
+                <rect x="114" y="162" width="8" height="8" fill="var(--text)"/>
+                <rect x="146" y="162" width="8" height="8" fill="var(--text)"/>
+                <rect x="162" y="162" width="8" height="8" fill="var(--text)"/>
+              </svg>
+            </div>
+            <div style="margin-top:16px;font-family:var(--mono);font-size:11px;color:var(--text3);">Código expira en <span id="qr-timer" style="color:var(--amber);">2:00</span></div>
+            <button class="btn btn-ghost" style="margin-top:8px;font-size:12px;color:var(--text2);" onclick="simulateConnect()">Simular conexión (demo) →</button>
+          </div>
+
+          <div class="steps-list">
+            <div class="step-item">
+              <div class="step-num">1</div>
+              <div class="step-content">
+                <div class="step-title">Abre WhatsApp en tu teléfono</div>
+                <div class="step-desc">Toca los tres puntos → Dispositivos vinculados → Vincular dispositivo</div>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num">2</div>
+              <div class="step-content">
+                <div class="step-title">Escanea el código QR</div>
+                <div class="step-desc">Apunta la cámara al código de arriba. La conexión es segura y cifrada.</div>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num">3</div>
+              <div class="step-content">
+                <div class="step-title">Darwin se activa automáticamente</div>
+                <div class="step-desc">Una vez conectado, configura el modo de aprendizaje en Cerebro Neuronal.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CEREBRO NEURONAL ── -->
+      <div class="page" id="page-brain">
+        <div class="page-header">
+          <div class="page-title">Cerebro Neuronal</div>
+          <div class="page-sub">Elige cómo Darwin aprende tu ADN de ventas</div>
+        </div>
+
+        <div class="brain-hero">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-size:11px;font-family:var(--mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Estado del Cerebro</div>
+              <div style="font-size:28px;font-weight:800;color:var(--green);font-family:var(--mono);" id="brain-pct">—%</div>
+              <div style="font-size:12px;color:var(--text2);margin-top:4px;" id="brain-status-text">Sin datos de entrenamiento</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="badge badge-gray" id="brain-mode-badge">Sin modo activo</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:8px;font-family:var(--mono);" id="brain-msgs-count">0 mensajes procesados</div>
+            </div>
+          </div>
+          <div style="margin-top:16px;">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:6px;font-family:var(--mono);letter-spacing:1px;">CLONACIÓN ADN</div>
+            <div class="prog-track"><div class="prog-fill prog-green" id="brain-prog" style="width:0%"></div></div>
+          </div>
+        </div>
+
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;">Modo de Aprendizaje</div>
+        <div class="mode-grid">
+          <div class="mode-card" id="mode-mirror" onclick="selectMode('mirror')">
+            <div class="mode-badge"><div class="badge badge-purple">Seguro</div></div>
+            <div class="mode-icon" style="background:var(--purple-bg);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <div class="mode-title">Modo Vigilante</div>
+            <div class="mode-desc">Darwin observa todas tus conversaciones sin responder. Aprende tu ADN en silencio total.</div>
+            <div style="margin-top:12px;">
+              <div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Duración:</div>
+              <div class="days-selector" id="mirror-days">
+                <div class="day-chip" onclick="setDays(this,3)">3 días</div>
+                <div class="day-chip active" onclick="setDays(this,7)">7 días</div>
+                <div class="day-chip" onclick="setDays(this,14)">14 días</div>
+                <div class="day-chip" onclick="setDays(this,30)">30 días</div>
+              </div>
+            </div>
+          </div>
+          <div class="mode-card" id="mode-scan" onclick="selectMode('scan')">
+            <div class="mode-badge"><div class="badge badge-green">Rápido</div></div>
+            <div class="mode-icon" style="background:var(--green-bg);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46"/></svg>
+            </div>
+            <div class="mode-title">Escaneo de ADN</div>
+            <div class="mode-desc">Darwin escanea tu historial existente de WhatsApp. Aprende en minutos, no días.</div>
+            <div style="margin-top:12px;">
+              <div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Historial a analizar:</div>
+              <div class="days-selector" id="scan-months">
+                <div class="day-chip" onclick="setMonths(this,1)">1 mes</div>
+                <div class="day-chip" onclick="setMonths(this,2)">2 meses</div>
+                <div class="day-chip active" onclick="setMonths(this,3)">3 meses</div>
+                <div class="day-chip" onclick="setMonths(this,6)">6 meses</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-bottom:24px;">
+          <button class="btn btn-primary" id="btn-start-learning" onclick="startLearning()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Iniciar Aprendizaje
+          </button>
+          <button class="btn" onclick="showPage('apis')">Ver APIs disponibles</button>
+        </div>
+
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;">Configurar Agente Darwin</div>
+        <div class="brain-config-grid">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Personalidad del Agente</div></div>
+            <div class="slider-group">
+              <div class="slider-row"><div class="slider-header"><span class="slider-label">Agresividad de cierre</span><span class="slider-val" id="sv-agr">7</span></div><input type="range" min="1" max="10" value="7" oninput="document.getElementById('sv-agr').textContent=this.value"></div>
+              <div class="slider-row"><div class="slider-header"><span class="slider-label">Empatía emocional</span><span class="slider-val" id="sv-emp">8</span></div><input type="range" min="1" max="10" value="8" oninput="document.getElementById('sv-emp').textContent=this.value"></div>
+              <div class="slider-row"><div class="slider-header"><span class="slider-label">Urgencia en mensajes</span><span class="slider-val" id="sv-urg">6</span></div><input type="range" min="1" max="10" value="6" oninput="document.getElementById('sv-urg').textContent=this.value"></div>
+              <div class="slider-row"><div class="slider-header"><span class="slider-label">Formalidad del tono</span><span class="slider-val" id="sv-for">4</span></div><input type="range" min="1" max="10" value="4" oninput="document.getElementById('sv-for').textContent=this.value"></div>
+              <div class="slider-row"><div class="slider-header"><span class="slider-label">Uso de prueba social</span><span class="slider-val" id="sv-ps">8</span></div><input type="range" min="1" max="10" value="8" oninput="document.getElementById('sv-ps').textContent=this.value"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Capacidades del Agente</div></div>
+            <div class="feature-list">
+              <div class="feature-toggle"><div class="feature-info"><div class="feature-name">Notas de voz (ElevenLabs)</div><div class="feature-sub">Responde con tu voz clonada</div></div><div class="toggle-switch on" onclick="this.classList.toggle('on')"></div></div>
+              <div class="feature-toggle"><div class="feature-info"><div class="feature-name">Respuestas rápidas</div><div class="feature-sub">Botones de respuesta automática</div></div><div class="toggle-switch on" onclick="this.classList.toggle('on')"></div></div>
+              <div class="feature-toggle"><div class="feature-info"><div class="feature-name">Envío de catálogo</div><div class="feature-sub">Catálogo de WhatsApp Business</div></div><div class="toggle-switch on" onclick="this.classList.toggle('on')"></div></div>
+              <div class="feature-toggle"><div class="feature-info"><div class="feature-name">Links inteligentes</div><div class="feature-sub">Envía links según el contexto</div></div><div class="toggle-switch on" onclick="this.classList.toggle('on')"></div></div>
+              <div class="feature-toggle"><div class="feature-info"><div class="feature-name">Videos de ventas</div><div class="feature-sub">Envía video según la etapa</div></div><div class="toggle-switch" onclick="this.classList.toggle('on')"></div></div>
+              <div class="feature-toggle"><div class="feature-info"><div class="feature-name">Escalado a humano</div><div class="feature-sub">Notifica cuando no puede cerrar</div></div><div class="toggle-switch on" onclick="this.classList.toggle('on')"></div></div>
+            </div>
+            <div style="margin-top:14px;">
+              <button class="btn btn-primary" style="width:100%;" onclick="saveBrain()">Guardar Configuración</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── APIS & CRÉDITOS ── -->
+      <div class="page" id="page-apis">
+        <div class="page-header flex items-center justify-between">
+          <div><div class="page-title">APIs & Créditos</div><div class="page-sub">Monitoreo de cuotas en tiempo real · Todos los usuarios</div></div>
+          <button class="btn" onclick="refreshAPIs()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>Actualizar</button>
+        </div>
+
+        <div class="api-grid">
+          <!-- Gemini -->
+          <div class="api-card">
+            <div class="api-header">
+              <div class="api-icon" style="background:var(--blue-bg);font-size:20px;">✦</div>
+              <div><div class="api-name">Google Gemini</div><div class="api-model">gemini-1.5-flash</div></div>
+              <div class="badge badge-green" style="margin-left:auto;">Activo</div>
+            </div>
+            <div class="api-stat">
+              <div class="api-stat-row"><span>Tokens usados hoy</span><span class="api-stat-val">342,180</span></div>
+              <div class="api-stat-row"><span>Límite diario</span><span class="api-stat-val">1,000,000</span></div>
+              <div class="api-stat-row"><span>Costo estimado</span><span class="api-stat-val text-green">$0.52</span></div>
+              <div class="api-stat-row"><span>RPM disponible</span><span class="api-stat-val">58/60</span></div>
+            </div>
+            <div style="margin-top:8px;">
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:4px;"><span>Uso diario</span><span>34%</span></div>
+              <div class="prog-track"><div class="prog-fill prog-green" style="width:34%"></div></div>
+            </div>
+            <div class="api-alert api-alert-green">✓ Cuota saludable · 658K tokens disponibles</div>
+          </div>
+
+          <!-- OpenAI / Whisper -->
+          <div class="api-card">
+            <div class="api-header">
+              <div class="api-icon" style="background:var(--bg3);font-size:18px;">◎</div>
+              <div><div class="api-name">OpenAI</div><div class="api-model">whisper-1 · gpt-4o</div></div>
+              <div class="badge badge-green" style="margin-left:auto;">Activo</div>
+            </div>
+            <div class="api-stat">
+              <div class="api-stat-row"><span>Créditos restantes</span><span class="api-stat-val text-amber">$8.40</span></div>
+              <div class="api-stat-row"><span>Audios transcritos hoy</span><span class="api-stat-val">127</span></div>
+              <div class="api-stat-row"><span>Costo por audio</span><span class="api-stat-val">~$0.006</span></div>
+              <div class="api-stat-row"><span>Promedio seg/audio</span><span class="api-stat-val">23 seg</span></div>
+            </div>
+            <div style="margin-top:8px;">
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:4px;"><span>Créditos usados</span><span>72%</span></div>
+              <div class="prog-track"><div class="prog-fill prog-amber" style="width:72%"></div></div>
+            </div>
+            <div class="api-alert api-alert-amber">⚠ Crédito bajo · Recarga pronto para no interrumpir</div>
+          </div>
+
+          <!-- ElevenLabs -->
+          <div class="api-card">
+            <div class="api-header">
+              <div class="api-icon" style="background:var(--purple-bg);font-size:18px;">🎙</div>
+              <div><div class="api-name">ElevenLabs</div><div class="api-model">voice-clone · turbo</div></div>
+              <div class="badge badge-red" style="margin-left:auto;">Crítico</div>
+            </div>
+            <div class="api-stat">
+              <div class="api-stat-row"><span>Caracteres restantes</span><span class="api-stat-val text-red">4,200</span></div>
+              <div class="api-stat-row"><span>Límite mensual</span><span class="api-stat-val">100,000</span></div>
+              <div class="api-stat-row"><span>Notas de voz enviadas</span><span class="api-stat-val">892</span></div>
+              <div class="api-stat-row"><span>Voice ID activo</span><span class="api-stat-val mono" style="font-size:10px;">jX2k...9mPq</span></div>
+            </div>
+            <div style="margin-top:8px;">
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:4px;"><span>Cuota usada</span><span style="color:var(--red);">96%</span></div>
+              <div class="prog-track"><div class="prog-fill prog-red" style="width:96%"></div></div>
+            </div>
+            <div class="api-alert api-alert-red">🔴 Cuota crítica · El agente usará texto si se agota</div>
+            <button class="btn btn-danger" style="width:100%;margin-top:10px;font-size:12px;">Recargar ElevenLabs →</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Consumo por Usuario · Este Mes</div>
+            <div class="badge badge-blue">Multi-tenant</div>
+          </div>
+          <table class="api-users-table">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>WhatsApp</th>
+                <th>Gemini Tokens</th>
+                <th>Whisper Audios</th>
+                <th>ElevenLabs Chars</th>
+                <th>Costo Total</th>
+                <th>Plan</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td style="color:var(--text);font-weight:600;">Carlos M. <span style="color:var(--green);font-size:10px;">(tú)</span></td><td><span class="badge badge-green">Conectado</span></td><td class="mono">342,180</td><td class="mono">127</td><td class="mono">95,800</td><td class="mono text-green">$4.20</td><td><span class="badge badge-blue">Pro</span></td></tr>
+              <tr><td style="color:var(--text);font-weight:600;">Ana R.</td><td><span class="badge badge-green">Conectado</span></td><td class="mono">218,440</td><td class="mono">89</td><td class="mono">67,200</td><td class="mono text-green">$2.80</td><td><span class="badge badge-blue">Pro</span></td></tr>
+              <tr><td style="color:var(--text);font-weight:600;">Pedro L.</td><td><span class="badge badge-amber">Reconectando</span></td><td class="mono">98,320</td><td class="mono">34</td><td class="mono">28,100</td><td class="mono text-green">$1.20</td><td><span class="badge badge-gray">Starter</span></td></tr>
+              <tr><td style="color:var(--text);font-weight:600;">María G.</td><td><span class="badge badge-green">Conectado</span></td><td class="mono">445,100</td><td class="mono">201</td><td class="mono">88,400</td><td class="mono text-green">$5.60</td><td><span class="badge badge-blue">Pro</span></td></tr>
+              <tr><td style="color:var(--text);font-weight:600;">Luis M.</td><td><span class="badge badge-gray">Sin conectar</span></td><td class="mono">0</td><td class="mono">0</td><td class="mono">0</td><td class="mono">$0.00</td><td><span class="badge badge-gray">Starter</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── AGENTE EN VIVO ── -->
+      <div class="page" id="page-agent">
+        <div class="agent-layout">
+          <div class="agent-sidebar">
+            <div class="agent-search">
+              <input placeholder="Buscar conversación..." style="font-size:12px;padding:8px 12px;"/>
+            </div>
+            <div style="padding:8px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+              <span style="font-size:11px;color:var(--text3);">47 conversaciones</span>
+              <span class="badge badge-green">Darwin activo</span>
+            </div>
+            <div class="conv-list" id="conv-list"></div>
+          </div>
+          <div class="agent-main" id="agent-main">
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--text3);">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity=".4"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <div style="font-size:13px;">Selecciona una conversación</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PIPELINE ── -->
+      <div class="page" id="page-pipeline">
+        <div class="page-header flex items-center justify-between">
+          <div><div class="page-title">Pipeline de Ventas</div><div class="page-sub">Gestionado automáticamente por Darwin</div></div>
+          <div class="flex gap8">
+            <span class="badge badge-green">127 prospectos activos</span>
+            <button class="btn">Exportar</button>
+          </div>
+        </div>
+        <div class="metrics-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:16px;">
+          <div class="metric-card card-sm"><div class="metric-label">Nuevos</div><div class="metric-value" style="font-size:22px;">24</div></div>
+          <div class="metric-card card-sm"><div class="metric-label">Contactados</div><div class="metric-value text-blue" style="font-size:22px;">31</div></div>
+          <div class="metric-card card-sm"><div class="metric-label">Propuesta</div><div class="metric-value text-amber" style="font-size:22px;">18</div></div>
+          <div class="metric-card card-sm"><div class="metric-label">Cierre</div><div class="metric-value text-green" style="font-size:22px;">9</div></div>
+          <div class="metric-card card-sm"><div class="metric-label">Perdidos</div><div class="metric-value text-red" style="font-size:22px;">7</div></div>
+        </div>
+        <div class="kanban">
+          <div class="k-col">
+            <div class="k-head"><span class="k-head-label" style="color:var(--text2);">Nuevo</span><span class="k-count">24</span></div>
+            <div class="k-body">
+              <div class="k-card"><div class="k-card-name">Roberto S.</div><div class="k-card-meta">Vio anuncio Facebook</div><div class="k-card-ai">Darwin: Calificando...</div><div class="k-card-time">hace 5 min</div></div>
+              <div class="k-card"><div class="k-card-name">Laura M.</div><div class="k-card-meta">Referido</div><div class="k-card-ai">Darwin: Enviando saludo</div><div class="k-card-time">hace 12 min</div></div>
+              <div class="k-card"><div class="k-card-name">Jorge P.</div><div class="k-card-meta">Formulario web</div><div class="k-card-ai">Darwin: Análisis perfil</div><div class="k-card-time">hace 20 min</div></div>
+            </div>
+          </div>
+          <div class="k-col">
+            <div class="k-head"><span class="k-head-label" style="color:var(--blue);">Contactado</span><span class="k-count">31</span></div>
+            <div class="k-body">
+              <div class="k-card"><div class="k-card-name">Ana R.</div><div class="k-card-meta">2 intercambios</div><div class="k-card-ai">Darwin: Interés alto · precio</div><div class="k-card-time">hace 8 min</div></div>
+              <div class="k-card"><div class="k-card-name">Miguel T.</div><div class="k-card-meta">Respondió en 3 min</div><div class="k-card-ai">Darwin: Tono entusiasta</div><div class="k-card-time">hace 31 min</div></div>
+            </div>
+          </div>
+          <div class="k-col">
+            <div class="k-head"><span class="k-head-label" style="color:var(--amber);">Propuesta</span><span class="k-count">18</span></div>
+            <div class="k-body">
+              <div class="k-card"><div class="k-card-name">Carlos F.</div><div class="k-card-meta">PDF enviado ayer</div><div class="k-card-ai">Darwin: Urgencia en 2h</div><div class="k-card-time">hace 1h</div></div>
+              <div class="k-card"><div class="k-card-name">Sofía V.</div><div class="k-card-meta">Revisando cotización</div><div class="k-card-ai">Darwin: Objeción: tiempo</div><div class="k-card-time">hace 3h</div></div>
+            </div>
+          </div>
+          <div class="k-col">
+            <div class="k-head"><span class="k-head-label" style="color:var(--green);">Cierre</span><span class="k-count">9</span></div>
+            <div class="k-body">
+              <div class="k-card" style="border-color:var(--green);"><div class="k-card-name">Pedro L. 🔥</div><div class="k-card-meta">Listo para pagar</div><div class="k-card-ai">Darwin: Confianza 98%</div><div class="k-card-time">hace 4 min</div></div>
+              <div class="k-card"><div class="k-card-name">Diana F.</div><div class="k-card-meta">Aprobación pendiente</div><div class="k-card-ai">Darwin: Follow en 1h</div><div class="k-card-time">hace 2h</div></div>
+            </div>
+          </div>
+          <div class="k-col">
+            <div class="k-head"><span class="k-head-label" style="color:var(--red);">Perdido</span><span class="k-count">7</span></div>
+            <div class="k-body">
+              <div class="k-card" style="opacity:.5;"><div class="k-card-name">Luis G.</div><div class="k-card-meta">Sin respuesta 5 días</div><div class="k-card-ai">Motivo: precio</div><div class="k-card-time">hace 5 días</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── USUARIOS ── -->
+      <div class="page" id="page-users">
+        <div class="page-header flex items-center justify-between">
+          <div><div class="page-title">Usuarios de la Plataforma</div><div class="page-sub">Gestión multi-tenant · Todos los agentes Darwin</div></div>
+          <button class="btn btn-primary" onclick="showInviteModal()">+ Invitar Usuario</button>
+        </div>
+        <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
+          <div class="metric-card"><div class="metric-label">Usuarios Activos</div><div class="metric-value text-green">5</div><div class="metric-sub">de 10 licencias</div></div>
+          <div class="metric-card"><div class="metric-label">WhatsApp Conectados</div><div class="metric-value text-blue">3</div><div class="metric-sub">2 pendientes</div></div>
+          <div class="metric-card"><div class="metric-label">Agentes Darwin</div><div class="metric-value text-green">3</div><div class="metric-sub">operando ahora</div></div>
+          <div class="metric-card"><div class="metric-label">Ingresos MRR</div><div class="metric-value text-amber">$445</div><div class="metric-sub">↑ 22% este mes</div></div>
+        </div>
+        <div class="card">
+          <table class="users-table">
+            <thead>
+              <tr><th>Usuario</th><th>Correo</th><th>Plan</th><th>WhatsApp</th><th>ADN</th><th>Estado</th><th>Acciones</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar-sm" style="background:var(--green-bg);color:var(--green);">CM</div><div><div style="font-size:13px;font-weight:600;color:var(--text);">Carlos M.</div><div style="font-size:10px;color:var(--text3);">Admin</div></div></div></td>
+                <td>carlos@empresa.com</td>
+                <td><span class="badge badge-blue">Pro</span></td>
+                <td><span class="badge badge-green">Conectado</span></td>
+                <td><div style="display:flex;align-items:center;gap:8px;"><div class="prog-track" style="width:60px;"><div class="prog-fill prog-green" style="width:87%"></div></div><span class="mono fs11 text-green">87%</span></div></td>
+                <td><span class="badge badge-green"><span class="dot dot-green"></span>Activo</span></td>
+                <td><button class="btn btn-ghost" style="font-size:11px;">Ver</button></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar-sm" style="background:var(--blue-bg);color:var(--blue);">AR</div><div><div style="font-size:13px;font-weight:600;color:var(--text);">Ana R.</div><div style="font-size:10px;color:var(--text3);">Vendedora</div></div></div></td>
+                <td>ana@empresa.com</td>
+                <td><span class="badge badge-blue">Pro</span></td>
+                <td><span class="badge badge-green">Conectado</span></td>
+                <td><div style="display:flex;align-items:center;gap:8px;"><div class="prog-track" style="width:60px;"><div class="prog-fill prog-green" style="width:73%"></div></div><span class="mono fs11 text-green">73%</span></div></td>
+                <td><span class="badge badge-green"><span class="dot dot-green"></span>Activo</span></td>
+                <td><button class="btn btn-ghost" style="font-size:11px;">Ver</button></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar-sm" style="background:var(--amber-bg);color:var(--amber);">PL</div><div><div style="font-size:13px;font-weight:600;color:var(--text);">Pedro L.</div><div style="font-size:10px;color:var(--text3);">Vendedor</div></div></div></td>
+                <td>pedro@empresa.com</td>
+                <td><span class="badge badge-gray">Starter</span></td>
+                <td><span class="badge badge-amber">Reconectando</span></td>
+                <td><div style="display:flex;align-items:center;gap:8px;"><div class="prog-track" style="width:60px;"><div class="prog-fill prog-amber" style="width:45%"></div></div><span class="mono fs11 text-amber">45%</span></div></td>
+                <td><span class="badge badge-amber"><span class="dot dot-amber"></span>Inactivo</span></td>
+                <td><button class="btn btn-ghost" style="font-size:11px;">Ver</button></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar-sm" style="background:var(--purple-bg);color:var(--purple);">MG</div><div><div style="font-size:13px;font-weight:600;color:var(--text);">María G.</div><div style="font-size:10px;color:var(--text3);">Vendedora</div></div></div></td>
+                <td>maria@empresa.com</td>
+                <td><span class="badge badge-blue">Pro</span></td>
+                <td><span class="badge badge-green">Conectado</span></td>
+                <td><div style="display:flex;align-items:center;gap:8px;"><div class="prog-track" style="width:60px;"><div class="prog-fill prog-green" style="width:91%"></div></div><span class="mono fs11 text-green">91%</span></div></td>
+                <td><span class="badge badge-green"><span class="dot dot-green"></span>Activo</span></td>
+                <td><button class="btn btn-ghost" style="font-size:11px;">Ver</button></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar-sm" style="background:var(--bg3);color:var(--text3);">LM</div><div><div style="font-size:13px;font-weight:600;color:var(--text);">Luis M.</div><div style="font-size:10px;color:var(--text3);">Invitado</div></div></div></td>
+                <td>luis@empresa.com</td>
+                <td><span class="badge badge-gray">Starter</span></td>
+                <td><span class="badge badge-gray">Sin conectar</span></td>
+                <td><div style="font-size:11px;color:var(--text3);">Sin datos</div></td>
+                <td><span class="badge badge-gray">Pendiente</span></td>
+                <td><button class="btn btn-ghost" style="font-size:11px;">Reenviar</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- end main-content -->
+  </div><!-- end app-body -->
+</div><!-- end app -->
+
+<!-- INVITE MODAL -->
+<div class="modal-overlay hidden" id="modal-invite">
+  <div class="modal-box fade-up">
+    <button class="modal-close" onclick="hideModal('modal-invite')">✕</button>
+    <div class="modal-title">Invitar Usuario</div>
+    <div class="modal-sub">El usuario recibirá un email para crear su cuenta y conectar su WhatsApp</div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div><label>Nombre</label><input placeholder="Nombre del vendedor"/></div>
+      <div><label>Correo electrónico</label><input type="email" placeholder="vendedor@empresa.com"/></div>
+      <div><label>Plan</label><select><option>Starter · $49/mes</option><option selected>Pro · $99/mes</option></select></div>
+      <div><label>Rol</label><select><option>Vendedor</option><option>Admin</option></select></div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn btn-primary" style="flex:1;" onclick="hideModal('modal-invite')">Enviar Invitación</button>
+        <button class="btn" onclick="hideModal('modal-invite')">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let currentUser = null;
+let waConnected = false;
+let selectedMode = 'scan';
+let selectedDays = 7;
+let selectedMonths = 3;
+let selectedPlan = 'pro';
+let brainData = null;
+let activeConv = null;
+let convChatHistory = {};
+let statMsgs = 0;
+
+const API_URL = "https://api.anthropic.com/v1/messages";
+const BACKEND_URL = "https://zestful-alignment-production-c71f.up.railway.app";
+
+const convData = [
+  {id:1,name:'Pedro L.',phone:'+52 998 123 4567',avatar:'PL',color:'green',stage:'close',preview:'Listo para pagar 🔥',time:'4 min',msgs:[{role:'client',text:'Hola ya tomé la decisión, quiero el plan pro'},{role:'darwin',text:'Pedro! Qué buena noticia 🙌 Ya te mando el link de pago ahora mismo. En menos de 5 minutos tienes todo listo',pattern:'Urgencia de cierre · 98%'}]},
+  {id:2,name:'Ana R.',phone:'+52 998 234 5678',avatar:'AR',color:'blue',stage:'contactado',preview:'Me interesa pero el precio...',time:'8 min',msgs:[{role:'client',text:'Hola vi tu anuncio, me interesa el curso'},{role:'darwin',text:'Ana! Bienvenida 👋 Cuéntame, ¿cuál es tu situación actual con las ventas? ¿ya tienes clientes o estás empezando?',pattern:'Pregunta de calificación · 94%'}]},
+  {id:3,name:'Miguel T.',phone:'+52 998 345 6789',avatar:'MT',color:'purple',stage:'contactado',preview:'¿Tienen garantía?',time:'31 min',msgs:[]},
+  {id:4,name:'Carlos F.',phone:'+52 998 456 7890',avatar:'CF',color:'amber',stage:'propuesta',preview:'Lo estoy revisando',time:'1h',msgs:[]},
+  {id:5,name:'Sofía V.',phone:'+52 998 567 8901',avatar:'SV',color:'red',stage:'propuesta',preview:'No tengo mucho tiempo',time:'3h',msgs:[]},
+];
+
+// ── AUTH ──
+function switchAuth(mode){
+  document.getElementById('auth-login').classList.toggle('hidden', mode==='register');
+  document.getElementById('auth-register').classList.toggle('hidden', mode==='login');
+  document.getElementById('tab-login').classList.toggle('active', mode==='login');
+  document.getElementById('tab-register').classList.toggle('active', mode==='register');
+}
+
+function selectPlan(plan, el){
+  selectedPlan = plan;
+  document.querySelectorAll('.plan-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function doLogin(){
+  const email = document.getElementById('login-email').value;
+  const pass = document.getElementById('login-pass').value;
+  if(!email||!pass){ alert('Ingresa correo y contraseña'); return; }
+  fetch(BACKEND_URL+'/api/auth/login',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({email,password:pass})
+  }).then(r=>r.json()).then(data=>{
+    if(data.token){ localStorage.setItem('darwin_token',data.token); loginUser(data.user); }
+    else alert(data.error||'Error al iniciar sesión');
+  }).catch(()=>demoLogin());
+}
+
+function demoLogin(){
+  loginUser({name:'Carlos Mendoza', email:'demo@darwin.ai', company:'Demo Corp', plan:'Pro', initials:'CM'});
+}
+
+function doRegister(){
+  const name=document.getElementById('reg-name').value;
+  const email=document.getElementById('reg-email').value;
+  const pass=document.getElementById('reg-pass').value;
+  const company=document.getElementById('reg-company').value;
+  if(!name||!email||!pass){alert('Completa nombre, correo y contraseña');return;}
+  fetch(BACKEND_URL+'/api/auth/register',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name,email,password:pass,company,plan:selectedPlan})
+  }).then(r=>r.json()).then(data=>{
+    if(data.token){ localStorage.setItem('darwin_token',data.token); loginUser(data.user); }
+    else alert(data.error||'Error al registrarse');
+  }).catch(e=>alert('Error: '+e.message));
+}
+
+function adminLogin(){
+  const pass=prompt('Contraseña de Super Admin:');
+  if(!pass) return;
+  fetch(BACKEND_URL+'/api/auth/login',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({email:'admin@darwin.ai',password:pass})
+  }).then(r=>r.json()).then(data=>{
+    if(data.token){
+      localStorage.setItem('darwin_token',data.token);
+      loginUser(data.user);
+      const navAdmin = document.getElementById('nav-admin');
+      if (navAdmin) navAdmin.style.display='flex';
+      setTimeout(()=>showPage('superadmin'),300);
+    } else alert('Contraseña incorrecta');
+  }).catch(()=>alert('Error conectando al servidor'));
+}
+
+function loginUser(user){
+  currentUser = user;
+  document.getElementById('screen-auth').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('user-name-top').textContent = user.name.split(' ')[0]+' '+user.name.split(' ')[1]?.[0]+'.';
+  document.getElementById('user-avatar-top').textContent = user.initials;
+  document.getElementById('plan-badge').textContent = 'Plan '+user.plan;
+  const h = new Date().getHours();
+  document.getElementById('dash-greeting').textContent = (h<12?'Buenos días':'h<18?Buenas tardes':'Buenas noches')+' '+user.name.split(' ')[0]+' · Tu agente Darwin está listo';
+  buildConvList();
+  startQRTimer();
+}
+
+function logout(){
+  currentUser = null;
+  waConnected = false;
+  document.getElementById('app').style.display='none';
+  document.getElementById('screen-auth').style.display='flex';
+}
+
+// ── NAVIGATION ──
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const page = document.getElementById('page-'+name);
+  if(page) page.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    if(n.getAttribute('onclick')?.includes("'"+name+"'")) n.classList.add('active');
+  });
+}
+
+// ── WHATSAPP ──
+let qrInterval;
+function startQRTimer(){
+  let secs = 120;
+  clearInterval(qrInterval);
+  qrInterval = setInterval(()=>{
+    secs--;
+    const el = document.getElementById('qr-timer');
+    if(el) el.textContent = Math.floor(secs/60)+':'+(secs%60).toString().padStart(2,'0');
+    if(secs<=0){ clearInterval(qrInterval); if(el) el.textContent='Expirado'; }
+  },1000);
+}
+
+function simulateConnect(){
+  waConnected = true;
+  clearInterval(qrInterval);
+  const badge = document.getElementById('qr-status-badge');
+  if(badge){ badge.className='badge badge-green'; badge.innerHTML='<span class="dot dot-green"></span> WhatsApp Conectado'; }
+  const topBadge = document.getElementById('topbar-wa-status');
+  if(topBadge){ topBadge.className='badge badge-green'; topBadge.innerHTML='<span class="dot dot-green"></span> WhatsApp conectado'; }
+  const sysWa = document.getElementById('sys-wa-dot');
+  if(sysWa) sysWa.style.background='var(--green)';
+  const sysWaBadge = document.getElementById('sys-wa-badge');
+  if(sysWaBadge){ sysWaBadge.className='badge badge-green'; sysWaBadge.textContent='Conectado'; }
+  const sideWa = document.getElementById('sidebar-wa-sub');
+  if(sideWa) sideWa.textContent='+52 998 '+Math.floor(Math.random()*900+100)+' '+Math.floor(Math.random()*9000+1000);
+  const qrCont = document.getElementById('qr-container');
+  if(qrCont){ qrCont.innerHTML='<div style="text-align:center;"><div style="font-size:32px;margin-bottom:8px;">✓</div><div style="font-size:14px;font-weight:700;color:var(--green);">Conectado</div></div>'; qrCont.style.borderColor='var(--green)'; }
+  setTimeout(()=>showPage('brain'),1200);
+}
+
+// ── BRAIN ──
+function selectMode(mode){
+  selectedMode = mode;
+  document.getElementById('mode-mirror').classList.toggle('selected', mode==='mirror');
+  document.getElementById('mode-scan').classList.toggle('selected', mode==='scan');
+}
+
+function setDays(el, days){
+  selectedDays = days;
+  document.querySelectorAll('#mirror-days .day-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function setMonths(el, months){
+  selectedMonths = months;
+  document.querySelectorAll('#scan-months .day-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function startLearning(){
+  const btn = document.getElementById('btn-start-learning');
+  btn.disabled = true;
+  btn.textContent = 'Aprendiendo...';
+  const badge = document.getElementById('brain-mode-badge');
+  badge.className = 'badge badge-amber';
+  badge.textContent = selectedMode==='mirror'?`Mirror Mode · ${selectedDays} días`:`Escaneo · ${selectedMonths} mes${selectedMonths>1?'es':''}`;
+  document.getElementById('brain-status-text').textContent = 'Analizando conversaciones...';
+  document.getElementById('sys-mirror').className='badge badge-green';
+  document.getElementById('sys-mirror').textContent='Activo';
+
+  let pct = 0;
+  const msgs = [0, 120, 480, 1240, 2800, 4100];
+  const interval = setInterval(()=>{
+    pct += Math.random()*8+2;
+    if(pct>100) pct=100;
+    const idx = Math.floor(pct/20);
+    document.getElementById('brain-prog').style.width = pct+'%';
+    document.getElementById('brain-pct').textContent = Math.floor(pct)+'%';
+    document.getElementById('brain-msgs-count').textContent = (msgs[idx]||msgs[msgs.length-1]).toLocaleString()+' mensajes procesados';
+    document.getElementById('dash-dna').textContent = Math.floor(pct)+'%';
+    document.getElementById('dash-dna-sub').textContent = 'Clonación en progreso';
+    if(pct>=100){
+      clearInterval(interval);
+      document.getElementById('brain-status-text').textContent = 'ADN clonado · Darwin listo para vender';
+      badge.className = 'badge badge-green';
+      badge.textContent = 'ADN Completo';
+      btn.textContent = '✓ Aprendizaje completado';
+      btn.style.background='var(--green2)';
+      document.getElementById('dash-dna-sub').textContent = '↑ Clonación completa';
+      brainData = {dna:100,mode:selectedMode};
+    }
+  }, 200);
+}
+
+function saveBrain(){
+  const btn = event.target;
+  btn.textContent = 'Guardando...';
+  btn.disabled = true;
+  setTimeout(()=>{
+    btn.textContent = '✓ Guardado';
+    setTimeout(()=>{ btn.textContent='Guardar Configuración'; btn.disabled=false; },2000);
+  },800);
+}
+
+// ── CONVERSATIONS ──
+function buildConvList(){
+  const list = document.getElementById('conv-list');
+  list.innerHTML = convData.map(c=>`
+    <div class="conv-item" id="conv-${c.id}" onclick="openConv(${c.id})">
+      <div class="conv-avatar" style="background:var(--${c.color}-bg,var(--bg3));color:var(--${c.color},var(--text2));">${c.avatar}</div>
+      <div class="conv-info">
+        <div class="conv-name">${c.name}<span class="conv-time">${c.time}</span></div>
+        <div class="conv-preview">${c.preview}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openConv(id){
+  activeConv = convData.find(c=>c.id===id);
+  document.querySelectorAll('.conv-item').forEach(c=>c.classList.remove('active'));
+  document.getElementById('conv-'+id)?.classList.add('active');
+  renderConvMain();
+}
+
+function renderConvMain(){
+  const c = activeConv;
+  if(!c) return;
+  const main = document.getElementById('agent-main');
+  main.innerHTML = `
+    <div class="agent-topbar">
+      <div class="flex items-center gap12">
+        <div class="conv-avatar" style="background:var(--${c.color}-bg,var(--bg3));color:var(--${c.color},var(--text2));">${c.avatar}</div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);">${c.name}</div>
+          <div style="font-size:11px;color:var(--text3);font-family:var(--mono);">${c.phone} · ${c.stage}</div>
+        </div>
+      </div>
+      <div class="flex gap8">
+        <span class="badge badge-green"><span class="dot dot-green"></span> Darwin activo</span>
+        <button class="btn btn-ghost" style="font-size:12px;" onclick="escalateHuman()">Escalar a humano</button>
+      </div>
+    </div>
+    <div class="chat-area" id="chat-area-${c.id}"></div>
+    <div class="agent-input-bar">
+      <div class="agent-tools">
+        <button class="agent-tool-btn" title="Nota de voz">🎙 Nota de voz</button>
+        <button class="agent-tool-btn" title="Catálogo">📋 Catálogo</button>
+        <button class="agent-tool-btn" title="Link">🔗 Link</button>
+        <button class="agent-tool-btn" title="Video">🎬 Video</button>
+        <button class="agent-tool-btn" title="Respuesta rápida">⚡ Rápida</button>
+      </div>
+      <div class="agent-input-row">
+        <textarea id="agent-input-${c.id}" placeholder="Simula mensaje del cliente... (Enter para enviar)" onkeydown="handleAgentKey(event,${c.id})" style="min-height:44px;"></textarea>
+        <button class="btn btn-primary" onclick="sendAgentMsg(${c.id})" id="agent-send-${c.id}">Enviar</button>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:6px;font-family:var(--mono);">Darwin responde como tú · Shift+Enter = nueva línea</div>
+    </div>
+  `;
+  renderMessages(c.id);
+}
+
+function renderMessages(id){
+  const c = convData.find(x=>x.id===id);
+  const area = document.getElementById('chat-area-'+id);
+  if(!area) return;
+  const msgs = convChatHistory[id] || c.msgs;
+  area.innerHTML = msgs.map(m=>`
+    <div class="msg-row ${m.role==='client'?'in':'out'} fade-up">
+      <div style="font-size:9px;color:var(--text3);font-family:var(--mono);margin-bottom:4px;">${m.role==='client'?c.name:'DARWIN · '+currentUser.name.split(' ')[0].toUpperCase()}</div>
+      <div class="msg-bubble ${m.role==='client'?'msg-in':'msg-out'}">${m.text}${m.pattern?`<div class="msg-pattern">⚡ ${m.pattern}</div>`:''}</div>
+    </div>
+  `).join('');
+  area.scrollTop = area.scrollHeight;
+}
+
+function handleAgentKey(e, id){
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendAgentMsg(id); }
+}
+
+async function sendAgentMsg(convId){
+  const input = document.getElementById('agent-input-'+convId);
+  const clientMsg = input.value.trim();
+  if(!clientMsg) return;
+
+  const sendBtn = document.getElementById('agent-send-'+convId);
+  sendBtn.disabled = true;
+  input.value = '';
+
+  if(!convChatHistory[convId]) convChatHistory[convId] = [...(convData.find(c=>c.id===convId)?.msgs||[])];
+  convChatHistory[convId].push({role:'client', text:clientMsg});
+  renderMessages(convId);
+
+  // Typing indicator
+  const area = document.getElementById('chat-area-'+convId);
+  const typingId = 'typing-'+Date.now();
+  area.innerHTML += `<div id="${typingId}" class="msg-row out fade-up"><div style="font-size:9px;color:var(--text3);font-family:var(--mono);margin-bottom:4px;">DARWIN</div><div class="msg-bubble msg-out"><div class="typing-ind"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div></div>`;
+  area.scrollTop = area.scrollHeight;
+
+  const conv = convData.find(c=>c.id===convId);
+  const history = convChatHistory[convId];
+
+  const systemPrompt = `Eres Darwin, el agente de ventas neuronal de ${currentUser?.name||'el vendedor'}. Has aprendido su ADN de ventas al ${brainData?.dna||75}%.
+
+REGLAS:
+- Responde como un vendedor real de WhatsApp: natural, directo, persuasivo
+- No escribas párrafos largos. Máximo 3-4 oraciones como en WhatsApp real
+- Usa emojis con moderación (1-2 por mensaje máximo)
+- Aplica técnicas de venta: identificar dolor, prueba social, urgencia, cierre
+- NO digas que eres IA
+- Al final añade: [PATRÓN: nombre · Confianza: XX%]
+
+CONTEXTO: Conversación con ${conv?.name}, etapa: ${conv?.stage}`;
+
+  const apiMessages = history.map(m=>({
+    role: m.role==='client'?'user':'assistant',
+    content: m.text
+  }));
+
+  try{
+    const res = await fetch(API_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:400,
+        system: systemPrompt,
+        messages: apiMessages
+      })
+    });
+    const data = await res.json();
+    const fullResp = data.content?.map(b=>b.text||'').join('').trim() || 'Error al generar respuesta';
+    const patternMatch = fullResp.match(/\[PATRÓN: (.+?)\]/);
+    const patternInfo = patternMatch?.[1] || null;
+    const cleanResp = fullResp.replace(/\[PATRÓN:.+?\]/,'').trim();
+
+    document.getElementById(typingId)?.remove();
+    convChatHistory[convId].push({role:'darwin', text:cleanResp, pattern:patternInfo});
+    statMsgs++;
+    renderMessages(convId);
+  } catch(e){
+    document.getElementById(typingId)?.remove();
+    convChatHistory[convId].push({role:'darwin', text:'Error de conexión con la IA: '+e.message});
+    renderMessages(convId);
+  }
+  sendBtn.disabled = false;
+}
+
+function escalateHuman(){
+  alert('Conversación escalada. Recibirás una notificación para tomar el control.');
+}
+
+// ── API QUOTAS ──
+function refreshAPIs(){
+  const btn = event.target;
+  btn.textContent = 'Actualizando...';
+  btn.disabled = true;
+  setTimeout(()=>{ btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>Actualizar'; btn.disabled=false; },1000);
+}
+
+// ── MODALS ──
+function showInviteModal(){ document.getElementById('modal-invite').classList.remove('hidden'); }
+function hideModal(id){ document.getElementById(id).classList.add('hidden'); }
+
+// ── UTILS ──
+function selectMode(mode){
+  selectedMode = mode;
+  document.getElementById('mode-mirror').classList.toggle('selected', mode==='mirror');
+  document.getElementById('mode-scan').classList.toggle('selected', mode==='scan');
+}
+
+// Default mode selected
+selectMode('scan');
+</script>
+</body>
 </html>
