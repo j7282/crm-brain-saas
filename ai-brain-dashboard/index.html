@@ -1096,7 +1096,7 @@ function showPage(name){
   if (name === 'whatsapp' && !waConnected) {
     fetch(BACKEND_URL + '/api/wa/connect', {
       method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('darwin_token') }
     }).catch(console.error);
   }
 }
