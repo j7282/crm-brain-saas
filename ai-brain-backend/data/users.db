@@ -1,3 +1,3 @@
-{"email":"verify@test.com","password":"$2b$10$8czMpQZ.bQ9F7dBdEJ3cquSi0ILOGvnboTnD87ncQyXn0LufapR76","createdAt":{"$$date":1773627237951},"_id":"AC6cvZqspGzLgPzu"}
-{"$$indexCreated":{"fieldName":"email","unique":true,"sparse":false}}
 {"email":"verify@test.com","password":"$2b$10$t2oTzhkJWcVdMR8u0EFpEuHmCXpYEYEVWw8DAQ/vrpaOowq61eKGK","createdAt":{"$$date":1773627237951},"_id":"AC6cvZqspGzLgPzu"}
+{"$$indexCreated":{"fieldName":"email","unique":true,"sparse":false}}
+{"$$indexCreated":{"fieldName":"email","unique":true}}

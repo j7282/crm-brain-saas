@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react'
 import { io } from 'socket.io-client'
 import './App.css'
 
@@ -17,11 +17,103 @@ import {
   Bot,
   Plus,
   Smile,
-  Send
+  Send,
+  Zap
 } from 'lucide-react'
 
 const socket = io(BACKEND_URL);
-console.log('[App] 🚀 Darwin Intelligence System Initialized - Version 1.6.2');
+
+// --- Professional Memoized Sub-components J7282 ---
+
+const ChatListItem = memo(({ chat, isActive, onClick }) => {
+  return (
+    <div 
+      className={`chat-item ${isActive ? 'active' : ''}`}
+      onClick={() => onClick(chat.jid)}
+    >
+      <div className="avatar" style={{ background: chat.sentiment === 'verde' ? '#dcf8c6' : (chat.sentiment === 'rojo' ? '#ffebee' : '#f0f2f5') }}>
+        {chat.pushName?.substring(0, 1).toUpperCase() || 'W'}
+      </div>
+      <div className="chat-info">
+        <div className="chat-header">
+          <span className="contact-name" style={{ fontWeight: 600, color: '#111b21', fontSize: '1.05rem' }}>
+            {chat.pushName || chat.jid.split('@')[0]}
+          </span>
+          <span className="time" style={{ fontSize: '0.75rem', opacity: 0.7 }}>
+            {new Date(chat.lastTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        </div>
+        <div className="chat-preview-row">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, overflow: 'hidden' }}>
+            {chat.role === 'ai' && <span style={{ color: '#53bdeb' }}>✓✓</span>}
+            <p className="last-message" style={{ margin: 0, fontSize: '0.85rem', color: '#667781' }}>
+              {chat.lastMessage || 'Sin mensajes'}
+            </p>
+          </div>
+          <span className={`sentiment-badge bg-${chat.sentiment || 'yellow'}`} title={`Sentimiento: ${chat.sentiment}`}></span>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+const MessageBubble = memo(({ msg, isLast }) => {
+  return (
+    <div className={`message-wrapper ${msg.role === 'ai' || msg.role === 'agent' ? 'ai' : 'user'}`}>
+      <div className={`message-bubble ${msg.role === 'ai' || msg.role === 'agent' ? 'ai' : 'user'}`}>
+        <div className="message-content">
+          {msg.type === 'audio' && msg.mediaUrl && (
+            <audio src={`${BACKEND_URL}${msg.mediaUrl}`} controls style={{ width: '100%', height: '35px', marginBottom: '8px' }} />
+          )}
+          <div style={{ whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>{msg.text}</div>
+          <div className="message-meta">
+            <span className="message-time">
+              {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toLowerCase()}
+            </span>
+            {(msg.role === 'ai' || msg.role === 'agent') && (
+              <span className="message-status" style={{ color: '#53bdeb' }}>✓✓</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+const ChatInput = memo(({ onSendMessage }) => {
+  const [text, setText] = useState('');
+  
+  const handleSend = () => {
+    if (!text.trim()) return;
+    onSendMessage(text);
+    setText('');
+  };
+
+  return (
+    <div className="input-area">
+      <div className="input-main" style={{ display: 'flex', alignItems: 'center', padding: '10px 15px' }}>
+        <div className="chat-input-wrapper" style={{ flex: 1, margin: '0 10px' }}>
+          <textarea
+            className="chat-input"
+            placeholder="Escribe un mensaje aquí..."
+            rows="1"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+          />
+        </div>
+        <div className="action-btn send" onClick={handleSend}>
+          <Send size={20} />
+        </div>
+      </div>
+    </div>
+  );
+});
 
 function App() {
   const [isOnboarding, setIsOnboarding] = useState(localStorage.getItem('isOnboarding') !== 'false');
@@ -59,8 +151,14 @@ function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [knowledgeUrl, setKnowledgeUrl] = useState('');
   const [chats, setChats] = useState([]);
+  const [chatRenderLimit, setChatRenderLimit] = useState(40); // Elite 40 J7282
+  const [totalChats, setTotalChats] = useState(0);
+  const [isLoadingMoreChats, setIsLoadingMoreChats] = useState(false);
+  const [hasMoreChats, setHasMoreChats] = useState(true);
   const [selectedChatJid, setSelectedChatJid] = useState(null);
   const [realMessages, setRealMessages] = useState([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [neuronalLogs, setNeuronalLogs] = useState([]);
   const messagesEndRef = useRef(null);
 
@@ -96,9 +194,13 @@ function App() {
     }
   }, [token]);
 
+  const shouldScrollToBottomRef = useRef(true);
+
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (shouldScrollToBottomRef.current) {
+      scrollToBottom();
+    }
+  }, [realMessages]);
 
   // Polling para QR de WhatsApp con auto-reset si no aparece
   useEffect(() => {
@@ -160,25 +262,39 @@ function App() {
     return () => clearInterval(interval);
   }, [isOnboarding, onboardingStep, token]);
 
-  // Polling para Chats
+  // Polling para Chats - Optimizado a 15s J7282
   useEffect(() => {
     let interval;
-    // Quitamos la restricción de activeTab === 'inbox' para que carguen en background
     if (token) {
       const fetchChats = async () => {
         try {
-          const res = await fetch(`${BACKEND_URL}/api/whatsapp/chats`, {
+          const res = await fetch(`${BACKEND_URL}/api/whatsapp/chats?limit=40`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (!res.ok) return;
           const data = await res.json();
-          if (Array.isArray(data)) {
-            setChats(data);
-            if (!selectedChatJid && data.length > 0) {
-              setSelectedChatJid(data[0].jid);
+          // data format: { chats, total } J7282
+          if (data && Array.isArray(data.chats)) {
+            setChats(prev => {
+                // Mapeo por JID para evitar duplicados y preservar chats cargados por scroll J7282
+                const newChats = [...data.chats];
+                const existingJids = new Set(newChats.map(c => c.jid));
+                
+                // Agregamos los que ya teníamos pero que NO están en los primeros 50 del server
+                prev.forEach(oldChat => {
+                  if (!existingJids.has(oldChat.jid)) {
+                    newChats.push(oldChat);
+                  }
+                });
+                
+                // Ordenar por último timestamp para mantener consistencia
+                return newChats.sort((a, b) => b.lastTimestamp - a.lastTimestamp);
+            });
+            setTotalChats(data.total);
+            if (!selectedChatJid && data.chats.length > 0) {
+              setSelectedChatJid(data.chats[0].jid);
             }
-            // Si hay chats reales, significa que estamos conectados
-            if (data.length > 0 && isOnboarding) {
+            if (data.chats.length > 0 && isOnboarding) {
               setIsOnboarding(false);
               setActiveTab('inbox');
             }
@@ -186,10 +302,44 @@ function App() {
         } catch (err) { }
       };
       fetchChats();
-      interval = setInterval(fetchChats, 5000);
+      interval = setInterval(fetchChats, 15000); // 15s es suficiente con Sockets J7282
     }
     return () => clearInterval(interval);
   }, [token, selectedChatJid, isOnboarding]);
+
+  const loadMoreChats = async () => {
+    if (isLoadingMoreChats || !hasMoreChats || !token) return;
+    setIsLoadingMoreChats(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/whatsapp/chats?limit=40&skip=${chats.length}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data && Array.isArray(data.chats)) {
+        setChats(prev => [...prev, ...data.chats]);
+        setHasMoreChats(chats.length + data.chats.length < data.total);
+      }
+    } catch (err) {
+      console.error("Error loading more chats:", err);
+    } finally {
+      setIsLoadingMoreChats(false);
+    }
+  };
+
+  const handleChatListScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    // Si estamos cerca del fondo del scroll J7282
+    if (scrollHeight - scrollTop <= clientHeight + 150) {
+      // 1. Si tenemos más chats filtrados en local pero no visibles, aumentamos el límite de renderizado
+      if (chatRenderLimit < filteredChats.length) {
+        setChatRenderLimit(prev => prev + 25);
+      } 
+      // 2. Si ya mostramos todo lo local pero hay más en el server, cargamos más
+      else if (hasMoreChats && !isLoadingMoreChats) {
+        loadMoreChats();
+      }
+    }
+  };
 
   // Polling para Logs Neuronales
   useEffect(() => {
@@ -216,9 +366,17 @@ function App() {
     
     socket.on('new-message', (newMsg) => {
       console.log('[Socket] Nuevo mensaje:', newMsg);
-      // Solo añadir si es del chat seleccionado
       if (selectedChatJid === newMsg.jid) {
-        setRealMessages(prev => [...prev, newMsg]);
+        setRealMessages(prev => {
+          const index = prev.findIndex(m => m._id === newMsg._id && newMsg._id !== undefined);
+          if (index !== -1) {
+            const updated = [...prev];
+            updated[index] = newMsg;
+            return updated;
+          }
+          shouldScrollToBottomRef.current = true;
+          return [...prev, newMsg];
+        });
       }
     });
 
@@ -234,7 +392,7 @@ function App() {
     });
 
     socket.on('all-chats', (allChats) => {
-      console.log('[Socket] Todos los chats recibidos:', allChats.length);
+      console.log('[Socket] Chats iniciales recibidos:', allChats.length);
       setChats(allChats);
     });
 
@@ -246,24 +404,53 @@ function App() {
     };
   }, [selectedChatJid]);
 
-  // Polling para Mensajes del Chat Seleccionado (Como Respaldo)
+  // Carga de Mensajes Paginada J7282
   useEffect(() => {
-    let interval;
     if (token && selectedChatJid) {
-      const fetchMessages = async () => {
+      const fetchInitialMessages = async () => {
         try {
-          const res = await fetch(`${BACKEND_URL}/api/whatsapp/messages/${selectedChatJid}`, {
+          const res = await fetch(`${BACKEND_URL}/api/whatsapp/messages/${selectedChatJid}?limit=40`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const data = await res.json();
-          if (Array.isArray(data)) setRealMessages(data);
+          if (Array.isArray(data)) {
+            shouldScrollToBottomRef.current = true;
+            setRealMessages(data);
+            setHasMore(data.length >= 40);
+          }
         } catch (err) { }
       };
-      fetchMessages();
-      interval = setInterval(fetchMessages, 10000); // Polling mucho más lento (respaldo)
+      fetchInitialMessages();
     }
-    return () => clearInterval(interval);
   }, [token, selectedChatJid]);
+
+  const loadMoreMessages = async () => {
+    if (isLoadingMore || !hasMore || !selectedChatJid) return;
+    setIsLoadingMore(true);
+    shouldScrollToBottomRef.current = false;
+    
+    try {
+      const firstMsgTimestamp = realMessages[0]?.timestamp;
+      const res = await fetch(`${BACKEND_URL}/api/whatsapp/messages/${selectedChatJid}?limit=40&before=${firstMsgTimestamp}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setRealMessages(prev => [...data, ...prev]);
+        setHasMore(data.length >= 40);
+      }
+    } catch (err) {
+      console.error("Error loading more messages:", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  const handleScroll = (e) => {
+    if (e.target.scrollTop < 50 && hasMore && !isLoadingMore) {
+      loadMoreMessages();
+    }
+  };
 
   useEffect(() => {
     if (activeBrainId && token) {
@@ -276,6 +463,7 @@ function App() {
           setPersonalityWhatsApp(data.personalityTraits.isWhatsAppStyle);
           setPersonalityAggressiveness(data.personalityTraits.aggressivenessLevel);
           setPersonalityForbidLinks(data.personalityTraits.forbidLongLinks);
+          setMirrorMode(data.personalityTraits.isMirrorMode || false);
         }
         if (data.name) setBrainName(data.name);
       })
@@ -283,8 +471,8 @@ function App() {
     }
   }, [activeBrainId, token]);
 
-  const handleSendMessage = async () => {
-    if (!inputText.trim() || !selectedChatJid) return;
+  const handleSendMessage = useCallback(async (text) => {
+    if (!text.trim() || !selectedChatJid) return;
 
     try {
       const res = await fetch(`${BACKEND_URL}/api/whatsapp/send`, {
@@ -295,20 +483,42 @@ function App() {
         },
         body: JSON.stringify({
           jid: selectedChatJid,
-          text: inputText
+          text: text
         })
       });
 
-      if (res.ok) {
-        setInputText('');
-        // El polling refrescará el mensaje en la UI
-      } else {
+      if (!res.ok) {
         alert("Error al enviar mensaje real.");
       }
     } catch (err) {
       console.error("Error sending message:", err);
     }
-  };
+  }, [token, selectedChatJid]);
+
+  const handleChatClick = useCallback((jid) => {
+    setSelectedChatJid(jid);
+  }, []);
+
+  const filteredChats = useMemo(() => {
+    return chats.filter(chat => {
+      if (inboxFilterStatus === 'Por resolver') {
+        return !chat.labels || chat.labels.length === 0 || !chat.labels.includes('Cerrado');
+      }
+      if (inboxFilterStatus === 'Resueltos') {
+        return chat.labels?.includes('Cerrado');
+      }
+      return true;
+    }).filter(chat => {
+      if (inboxFilterAssignee === 'me') return chat.assignee === 'me';
+      if (inboxFilterAssignee === 'ai') return chat.assignee === 'ai';
+      return true;
+    });
+  }, [chats, inboxFilterStatus, inboxFilterAssignee]);
+
+  // Resetear el límite de renderizado cuando cambian los filtros J7282
+  useEffect(() => {
+    setChatRenderLimit(40);
+  }, [inboxFilterStatus, inboxFilterAssignee]);
 
   const renderAuth = () => {
     return (
@@ -644,7 +854,11 @@ function App() {
                         name: brainName,
                         niche: 'Ventas Automáticas',
                         historyLimit: historyMonths,
-                        shadowMode: mirrorMode
+                        personalityTraits: {
+                          isMirrorMode: true, // Siempre empezamos en Vigilante J7282
+                          isWhatsAppStyle: true,
+                          aggressivenessLevel: 5
+                        }
                       })
                     });
                     const data = await res.json();
@@ -699,6 +913,10 @@ function App() {
                     <MessageSquareText size={20} />
                     {!isSidebarCollapsed && <span>Bandeja de Entrada</span>}
                   </div>
+                  <div className={`nav-item ${activeTab === 'mirror' ? 'active' : ''}`} onClick={() => setActiveTab('mirror')} title="WhatsApp Real">
+                    <Zap size={20} style={{ color: '#ff9800' }} />
+                    {!isSidebarCollapsed && <span style={{ fontWeight: 700 }}>WhatsApp Real</span>}
+                  </div>
                   <div className={`nav-item ${activeTab === 'kanban' ? 'active' : ''}`} onClick={() => setActiveTab('kanban')} title="Pipeline Kanban">
                     <LineChart size={20} />
                     {!isSidebarCollapsed && <span>Pipeline Kanban</span>}
@@ -737,7 +955,7 @@ function App() {
                       <div className="inbox-header-tabs" style={{ alignItems: 'center', padding: '0 15px', borderBottom: '1px solid var(--border-color)', height: '60px' }}>
                         <div className={`inbox-tab ${inboxFilterStatus === 'Por resolver' ? 'active' : ''}`} onClick={() => setInboxFilterStatus('Por resolver')}>Por resolver</div>
                         <div className={`inbox-tab ${inboxFilterStatus === 'Resueltos' ? 'active' : ''}`} onClick={() => setInboxFilterStatus('Resueltos')}>Resueltos</div>
-                        <div className={`inbox-tab ${inboxFilterStatus === 'Todos' ? 'active' : ''}`} onClick={() => setInboxFilterStatus('Todos')}>Todos ({chats.length})</div>
+                        <div className={`inbox-tab ${inboxFilterStatus === 'Todos' ? 'active' : ''}`} onClick={() => setInboxFilterStatus('Todos')}>Todos ({totalChats})</div>
                         
                         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
                            {/* Escudo de Protección de Cerebro */}
@@ -782,90 +1000,35 @@ function App() {
                         <div style={{ marginLeft: 'auto', fontSize: '0.7rem', opacity: 0.5 }}>Darwin v1.6.6</div>
                       </div>
 
-                      <div className="chat-list-items">
-                        {chats.length === 0 ? (
-                          <div style={{ padding: '60px 40px', textAlign: 'center', backgroundColor: 'rgba(53, 162, 235, 0.03)', borderRadius: '24px', margin: '20px', border: '1px dashed rgba(53, 162, 235, 0.1)' }}>
-                            <div style={{ fontSize: '4rem', marginBottom: '24px' }}>🛡️</div>
-                            <h3 style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '1.4rem' }}>
-                              {waStatus === 'connected' ? 'Darwin está absorbiendo tus chats...' : `Cerebro "${brainName}" Protegido`}
-                            </h3>
-                            <p style={{ fontSize: '1rem', margin: '12px 0 32px', color: 'var(--text-secondary)', maxWidth: '350px', marginLeft: 'auto', marginRight: 'auto', lineHeight: '1.6' }}>
-                              {waStatus === 'connected' 
-                                ? 'Sincronizando el historial masivo para que tu agente aprenda de tus mejores cierres de venta.' 
-                                : 'Tu entrenamiento, voz y configuración están blindados. El agente no ha perdido nada; solo necesita reconectar WhatsApp para volver a vender.'}
-                            </p>
-                            
-                            {waStatus !== 'connected' && (
-                              <button 
-                                  className="primary-btn" 
-                                  onClick={async () => {
-                                    // Disparo en caliente: Resetear WA en el backend pero mantener el cerebro activo
-                                    try {
-                                      await fetch(`${BACKEND_URL}/api/whatsapp/reset`, {
-                                        method: 'POST',
-                                        headers: { 'Authorization': `Bearer ${token}` }
-                                      });
-                                    } catch (e) {
-                                      console.warn('Error al solicitar nuevo QR, se intentará de todas formas.');
-                                    }
-                                    setOnboardingStep(2);
-                                    setIsOnboarding(true);
-                                  }}
-                                  style={{ padding: '14px 28px', fontSize: '1rem', fontWeight: 600 }}
-                              >
-                                  🔐 Vincular WhatsApp de Nuevo
-                              </button>
-                            )}
-                          </div>
-                        ) : (
-                          chats
-                            .slice(0, 50) // Solo renderizamos los primeros 50 para fluidez total
-                            .map((chat) => (
-                              <div 
+                        <div className="chat-list-items" 
+                             style={{ flex: 1, overflowY: 'auto', background: '#fff', contain: 'content' }} 
+                             onScroll={handleChatListScroll}>
+                          {filteredChats.length === 0 && !isLoadingMoreChats ? (
+                            <div style={{ padding: '40px', textAlign: 'center', opacity: 0.5 }}>
+                              No hay chats que coincidan con los filtros.
+                            </div>
+                          ) : (
+                            filteredChats.slice(0, chatRenderLimit).map((chat) => (
+                              <ChatListItem 
                                 key={chat.jid} 
-                                className={`chat-item ${selectedChatJid === chat.jid ? 'active' : ''}`}
-                                onClick={() => setSelectedChatJid(chat.jid)}
-                              >
-                                <div className="avatar" style={{ background: chat.sentiment === 'verde' ? '#dcf8c6' : (chat.sentiment === 'rojo' ? '#ffebee' : '#f0f2f5') }}>
-                                  {chat.pushName?.substring(0, 1).toUpperCase() || 'W'}
-                                </div>
-                                <div className="chat-info">
-                                  <div className="chat-header">
-                                    <span className="contact-name" style={{ fontWeight: 600, color: '#111b21', fontSize: '1.05rem' }}>
-                                      {chat.pushName || chat.jid.split('@')[0]}
-                                    </span>
-                                    <span className="time" style={{ fontSize: '0.75rem', opacity: 0.7 }}>
-                                      {new Date(chat.lastTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
-                                  </div>
-                                  <div className="chat-preview-row">
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, overflow: 'hidden' }}>
-                                      {chat.role === 'ai' && <span style={{ color: '#53bdeb' }}>✓✓</span>}
-                                      <p className="last-message" style={{ margin: 0, fontSize: '0.85rem', color: '#667781' }}>
-                                        {chat.lastMessage || 'Sin mensajes'}
-                                      </p>
-                                    </div>
-                                    <span className={`sentiment-badge bg-${chat.sentiment || 'yellow'}`} title={`Sentimiento: ${chat.sentiment}`}></span>
-                                  </div>
-                                </div>
-                              </div>
+                                chat={chat} 
+                                isActive={selectedChatJid === chat.jid}
+                                onClick={handleChatClick}
+                              />
                             ))
-                        )}
-                        {chats.length > 50 && (
-                          <div style={{ padding: '10px', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                            + {chats.length - 50} chats adicionales sincronizados
-                          </div>
+                          )}
+                        {isLoadingMoreChats && (
+                          <div className="shimmer-item" style={{ height: '72px', margin: '10px', background: '#f0f2f5', borderRadius: '8px' }}></div>
                         )}
                       </div>
                     </div>
 
-                    {/* Active Chat View */}
                     <div className="chat-view">
                       {!selectedChatJid ? (
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
-                          <Bot size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-                          <h3>Selecciona una conversación</h3>
-                          <p>Los mensajes reales de tu WhatsApp aparecerán aquí.</p>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', background: '#f0f2f5' }}>
+                          <Bot size={64} style={{ marginBottom: '24px', opacity: 0.1 }} />
+                          <h3 style={{ fontWeight: 500 }}>Darwin Elite Intelligence</h3>
+                          <p style={{ opacity: 0.6 }}>Selecciona un cliente para comenzar el cierre.</p>
                         </div>
                       ) : (
                         <>
@@ -875,115 +1038,64 @@ function App() {
                                 {chats.find(c => c.jid === selectedChatJid)?.pushName?.substring(0, 2).toUpperCase()}
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span className="contact-name" style={{ fontSize: '1rem' }}>
+                                <span className="contact-name" style={{ fontSize: '1rem', fontWeight: 600 }}>
                                   {chats.find(c => c.jid === selectedChatJid)?.pushName || selectedChatJid.split('@')[0]}
                                 </span>
-                                <span style={{ fontSize: '0.8rem', color: 'var(--wa-green)' }}>En línea (WhatsApp Real)</span>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--wa-green)', fontWeight: 500 }}>● Sincronizado J7282</span>
                               </div>
-                            </div>
-                            <div className="header-icons">
-                              <button className="take-control-btn" onClick={() => {
-                                setIsInterventionMode(true);
-                              }}>
-                                <span>🛑</span> Tomar Control
-                              </button>
                             </div>
                           </div>
 
-                          <div className="messages-area">
+                          <div className="messages-area" onScroll={handleScroll} style={{ background: '#efeae2' }}>
+                            {isLoadingMore && (
+                              <div style={{ textAlign: 'center', padding: '15px', fontSize: '0.75rem', color: '#667781' }}>
+                                Cargando historial...
+                              </div>
+                            )}
+                            {/* Solo renderizamos el lote actual solicitado para máxima velocidad J7282 */}
                             {realMessages.map((msg, idx) => (
-                              <div key={msg._id || idx} className={`message-container ${msg.role}`}>
-                                <div className={`message ${msg.role}`} style={{
-                                  maxWidth: msg.isMultimedia && msg.mediaType === 'image' ? '300px' : '70%',
-                                  boxShadow: '0 1px 1px rgba(0,0,0,0.15)',
-                                  borderRadius: msg.role === 'client' ? '0 8px 8px 8px' : '8px 0 8px 8px'
-                                }}>
-                                    <div className={`message-content ${msg.isMultimedia ? 'multimedia' : ''}`} style={{ marginRight: '10px' }}>
-                                      {msg.isMultimedia && msg.mediaUrl && (
-                                        <div className="media-preview" style={{ marginBottom: '8px', borderRadius: '4px', overflow: 'hidden' }}>
-                                          {msg.mediaType === 'image' && (
-                                            <img 
-                                              src={`${BACKEND_URL}${msg.mediaUrl}`} 
-                                              alt="Media" 
-                                              loading="lazy"
-                                              style={{ width: '100%', maxHeight: '400px', objectFit: 'cover', display: 'block', cursor: 'pointer' }}
-                                              onClick={() => window.open(`${BACKEND_URL}${msg.mediaUrl}`, '_blank')}
-                                            />
-                                          )}
-                                          {msg.mediaType === 'video' && (
-                                            <video 
-                                              src={`${BACKEND_URL}${msg.mediaUrl}`} 
-                                              controls 
-                                              style={{ width: '100%', maxHeight: '400px', display: 'block' }} 
-                                            />
-                                          )}
-                                          {msg.mediaType === 'audio' && (
-                                            <audio 
-                                              src={`${BACKEND_URL}${msg.mediaUrl}`} 
-                                              controls 
-                                              style={{ width: '100%', height: '40px' }} 
-                                            />
-                                          )}
-                                        </div>
-                                      )}
-                                      <div style={{ whiteSpace: 'pre-wrap', paddingBottom: '14px' }}>{msg.text}</div>
-                                    </div>
-                                  <div className="message-meta">
-                                    <span className="message-time">
-                                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toLowerCase()}
-                                    </span>
-                                    {(msg.role === 'ai' || msg.role === 'agent') && (
-                                      <span className="message-status" style={{ color: '#53bdeb' }}>✓✓</span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
+                              <MessageBubble 
+                                key={msg._id || idx} 
+                                msg={msg} 
+                                isLast={idx === realMessages.length - 1} 
+                              />
                             ))}
-                            <div ref={messagesEndRef} style={{ height: '10px' }} />
+                            <div ref={messagesEndRef} style={{ height: '1px' }} />
                           </div>
 
-                          <div className="input-area">
-                            <div className="quick-replies" style={{ 
-                                display: 'flex', 
-                                gap: '8px', 
-                                padding: '8px 15px', 
-                                overflowX: 'auto', 
-                                borderTop: '1px solid var(--border-color)',
-                                backgroundColor: 'rgba(0,0,0,0.02)'
-                            }}>
-                                <button className="quick-btn" onClick={() => setInputText("¿En qué puedo ayudarte hoy?")}>👋 Saludo</button>
-                                <button className="quick-btn" onClick={() => setInputText("El precio es de $1,200 pesos. ¿Te interesa?")}>💰 Pipa $1,200</button>
-                                <button className="quick-btn" onClick={() => setInputText("Te mando la cuenta: BBVA 0123...")}>🏦 Cuenta</button>
-                                <button className="quick-btn" onClick={() => setInputText("Necesito tu dirección para el envío.")}>📍 Dirección</button>
-                            </div>
-                            <div className="input-main" style={{ display: 'flex', alignItems: 'center', padding: '10px 15px' }}>
-                                <div className="action-btn">
-                                  <Plus size={20} />
-                                </div>
-                                <div className="chat-input-wrapper" style={{ flex: 1, margin: '0 10px' }}>
-                              <textarea
-                                className="chat-input"
-                                placeholder="Escribe un mensaje aquí..."
-                                rows="1"
-                                value={inputText}
-                                onChange={(e) => setInputText(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSendMessage();
-                                  }
-                                }}
-                              />
-                              <Smile size={20} style={{ color: 'var(--text-tertiary)', cursor: 'pointer', marginLeft: '10px' }} />
-                            </div>
-                            <div className="action-btn send" onClick={handleSendMessage}>
-                              <Send size={20} />
-                            </div>
-                            </div>
-                          </div>
+                          <ChatInput onSendMessage={handleSendMessage} />
                         </>
                       )}
                     </div>
+                  </div>
+                )}
+
+                {activeTab === 'mirror' && (
+                  <div className="mirror-layout" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0b141a', color: '#e9edef' }}>
+                     <div style={{ padding: '15px 25px', background: '#202c33', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #374045' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                           <div className="pulse-icon" style={{ width: '10px', height: '10px', background: '#00a884', borderRadius: '50%' }}></div>
+                           <span style={{ fontWeight: 600, fontSize: '1.1rem' }}>Sincronización de Alta Fidelidad J7282</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                           <button 
+                            onClick={() => window.location.reload()}
+                            style={{ background: '#00a884', color: '#fff', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', fontWeight: 600 }}
+                           >
+                             Forzar Re-carga J7282
+                           </button>
+                           <div style={{ fontSize: '0.85rem', color: '#8696a0' }}>Motor Darwin 2.0 Activo 🧠</div>
+                        </div>
+                     </div>
+                     <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: '20px', padding: '40px' }}>
+                        <Zap size={60} color="#ff9800" />
+                        <h2 style={{ margin: 0 }}>Modo Real-Time Optimizado</h2>
+                        <p style={{ maxWidth: '600px', textAlign: 'center', color: '#8696a0', lineHeight: '1.6' }}>
+                          Para evitar bloqueos de seguridad de Meta, hemos integrado la inteligencia de Darwin directamente en tu Inbox de la izquierda. 
+                          <br/><br/>
+                          <strong>Instrucciones:</strong> Si no ves mensajes, usa el botón "Forzar Re-carga" o asegúrate de que el Backend esté procesando el historial. Los mensajes aparecerán instantáneamente en tu Inbox Inteligente. J7282.
+                        </p>
+                     </div>
                   </div>
                 )}
 
@@ -994,42 +1106,35 @@ function App() {
                       <p style={{ color: 'var(--text-secondary)' }}>La IA mueve a los clientes entre columnas según el progreso del cierre.</p>
                     </div>
 
-                    <div className="kanban-board">
-                      {[
-                        { title: 'Nuevos Prospectos', count: 3, color: 'var(--accent-blue)' },
-                        { title: 'En Calificación', count: 2, color: 'var(--accent-purple)' },
-                        { title: 'Negociación', count: 5, color: 'var(--accent-blue)' },
-                        { title: 'Cierre Ganado', count: 12, color: 'var(--wa-green)' }
-                      ].map((col, idx) => (
-                        <div key={idx} className="kanban-column">
-                          <div className="kanban-column-header">
-                            <span className="kanban-column-title" style={{ color: col.color }}>{col.title}</span>
-                            <span className="kanban-count">{col.count}</span>
-                          </div>
-                          
-                          {idx === 0 && (
-                            <div className="kanban-card">
-                              <span className="kanban-card-title">+52 55 1122 3344</span>
-                              <p className="kanban-card-subtitle">"Info de la pipa para Tlalpan urg..."</p>
-                              <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span className="sentiment-badge bg-red" title="Urgente"></span>
-                                <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Hace 5m</span>
-                              </div>
+                    <div className="kanban-board" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', alignItems: 'flex-start' }}>
+                      {['Prospecto', 'Cliente', 'VIP', 'Urgente', 'Seguimiento', 'Cerrado'].map((label) => {
+                        const labelChats = chats.filter(c => c.labels?.includes(label));
+                        return (
+                          <div key={label} className="kanban-column" style={{ background: 'rgba(0,0,0,0.02)', borderRadius: '12px', padding: '16px', border: '1px solid var(--border-color)', minHeight: '500px' }}>
+                            <div className="kanban-column-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '2px solid rgba(53, 162, 235, 0.3)', paddingBottom: '8px' }}>
+                              <span className="kanban-column-title" style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{label}</span>
+                              <span className="kanban-count" style={{ fontSize: '0.8rem', opacity: 0.5 }}>{labelChats.length}</span>
                             </div>
-                          )}
+                            
+                            {labelChats.map(chat => (
+                              <div key={chat.jid} className="kanban-card" onClick={() => { setSelectedChatJid(chat.jid); setActiveTab('inbox'); }} style={{ background: 'var(--bg-secondary)', borderRadius: '8px', padding: '12px', marginBottom: '12px', border: '1px solid var(--border-color)', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                                <div style={{ fontWeight: 600, marginBottom: '4px' }}>{chat.pushName || chat.jid.split('@')[0]}</div>
+                                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.lastMessage}</p>
+                                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span className={`sentiment-badge bg-${chat.sentiment || 'yellow'}`} style={{ width: '8px', height: '8px' }}></span>
+                                  <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>{new Date(chat.lastTimestamp).toLocaleDateString()}</span>
+                                </div>
+                              </div>
+                            ))}
 
-                          {idx === 2 && (
-                            <div className="kanban-card" style={{ borderLeft: '3px solid var(--accent-purple)' }}>
-                              <span className="kanban-card-title">Distribuidora Poniente</span>
-                              <p className="kanban-card-subtitle">Enviando cotización de 5000L...</p>
-                              <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span className="sentiment-badge bg-green"></span>
-                                <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Hace 1h</span>
+                            {labelChats.length === 0 && (
+                              <div style={{ textAlign: 'center', padding: '40px 10px', fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
+                                Sin prospectos
                               </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1081,6 +1186,67 @@ function App() {
                           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Nivel 1 es consultivo y paciente. Nivel 10 es un agente que empuja activamente al pago inmediato.</p>
                         </div>
                         <input type="range" min="1" max="10" value={personalityAggressiveness} onChange={(e) => setPersonalityAggressiveness(parseInt(e.target.value))} style={{ width: '100%', accentColor: 'var(--wa-green)' }} />
+                      </div>
+
+                      <div className="setting-item" style={{ marginTop: '24px', padding: '16px', backgroundColor: 'rgba(53, 162, 235, 0.05)', borderRadius: '8px', border: '1px solid rgba(53, 162, 235, 0.2)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <strong style={{ color: 'var(--accent-blue)' }}>🛡️ MODO VIGILANTE (Mirror Mode)</strong>
+                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Fase de 7 días. Darwin observa y analiza tus ventas pero **NO** responde a los clientes. Ideal para aprendizaje neuronal.</p>
+                          </div>
+                          <label className="switch">
+                            <input type="checkbox" checked={mirrorMode} onChange={(e) => setMirrorMode(e.target.checked)} />
+                            <span className="slider round"></span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="settings-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '24px' }}>
+                      <h3 style={{ marginBottom: '16px', color: 'var(--text-primary)' }}>🧬 Escaneo Neuronal de ADN (1-6 Meses)</h3>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>Darwin analizará meses de historial para clonar tu tono, ganchos de cierre y vocabulario técnico automáticamente.</p>
+                      
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <select 
+                          className="input-field" 
+                          value={historyMonths} 
+                          onChange={(e) => setHistoryMonths(e.target.value)}
+                          style={{ flex: 1, height: '42px' }}
+                        >
+                          <option>1 Mes</option>
+                          <option>2 Meses</option>
+                          <option>3 Meses</option>
+                          <option>4 Meses</option>
+                          <option>5 Meses</option>
+                          <option>6 Meses</option>
+                        </select>
+                        <button 
+                          className="secondary-btn"
+                          style={{ minWidth: '150px', backgroundColor: 'var(--bg-navy)', color: 'white' }}
+                          onClick={async () => {
+                            if (!activeBrainId) return alert('Selecciona un cerebro primero.');
+                            try {
+                              const res = await fetch(`${BACKEND_URL}/api/whatsapp/scan-dna`, {
+                                method: 'POST',
+                                headers: { 
+                                  'Content-Type': 'application/json',
+                                  'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify({ brainId: activeBrainId, months: parseInt(historyMonths) })
+                              });
+                              const data = await res.json();
+                              if (data.success) {
+                                alert('🧬 Escaneo de ADN iniciado. Darwin está procesando ' + historyMonths + ' de historial en segundo plano.');
+                              } else {
+                                alert('Error: ' + data.error);
+                              }
+                            } catch (e) {
+                              alert('Error de conexión al iniciar el escaneo.');
+                            }
+                          }}
+                        >
+                          Escanear ADN
+                        </button>
                       </div>
                     </div>
 
@@ -1147,7 +1313,8 @@ function App() {
                                 isWhatsAppStyle: personalityWhatsApp,
                                 aggressivenessLevel: personalityAggressiveness,
                                 forbidLongLinks: personalityForbidLinks,
-                                useVoiceResponse: personalityUseVoice
+                                useVoiceResponse: personalityUseVoice,
+                                isMirrorMode: mirrorMode
                               }
                             })
                           });
@@ -1272,6 +1439,33 @@ function App() {
                             Darwin ha procesado {neuronalLogs.length} eventos neuronales y analizado {chats.length} conversaciones reales.
                           </p>
                         </div>
+                      </div>
+
+                      <div className="metric-card" style={{ gridColumn: 'span 2', background: 'rgba(59, 130, 246, 0.05)', border: '1px solid var(--accent-blue)', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <h4 style={{ margin: 0, color: 'var(--accent-blue)' }}>📊 Reporte "Corte de Caja Cognitivo"</h4>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>Envía manualmente el resumen de aprendizajes al +52 1 55 4624 0128.</p>
+                        </div>
+                        <button 
+                          className="primary-btn" 
+                          style={{ padding: '8px 16px', fontSize: '0.75rem' }}
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`${BACKEND_URL}/api/whatsapp/report`, {
+                                method: 'POST',
+                                headers: { 
+                                  'Authorization': `Bearer ${token}`,
+                                  'Content-Type': 'application/json'
+                                }
+                              });
+                              const data = await res.json();
+                              if (data.success) alert('Reporte enviado con éxito.');
+                              else alert('Error: ' + data.error);
+                            } catch (e) { alert('Error de conexión.'); }
+                          }}
+                        >
+                          Enviar Reporte Ahora
+                        </button>
                       </div>
 
                       <div className="metric-card">

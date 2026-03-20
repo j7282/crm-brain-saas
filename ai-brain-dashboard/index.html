@@ -1101,11 +1101,11 @@ function loginUser(user){
   currentUser = user;
   document.getElementById('screen-auth').style.display='none';
   document.getElementById('app').style.display='flex';
-  document.getElementById('user-name-top').textContent = user.name.split(' ')[0]+' '+user.name.split(' ')[1]?.[0]+'.';
+  document.getElementById('user-name-top').textContent = user.name.split(' ')[0] + (user.name.split(' ')[1] ? ' ' + user.name.split(' ')[1][0] + '.' : '');
   document.getElementById('user-avatar-top').textContent = user.initials;
   document.getElementById('plan-badge').textContent = 'Plan '+user.plan;
   const h = new Date().getHours();
-  document.getElementById('dash-greeting').textContent = (h<12?'Buenos días':'h<18?Buenas tardes':'Buenas noches')+' '+user.name.split(' ')[0]+' · Tu agente Darwin está listo';
+  document.getElementById('dash-greeting').textContent = (h<12 ? 'Buenos días' : h<18 ? 'Buenas tardes' : 'Buenas noches') + ' ' + user.name.split(' ')[0] + ' · Tu agente Darwin está listo';
   buildConvList();
   startQRTimer();
 }
@@ -1392,6 +1392,13 @@ function selectMode(mode){
 
 // Default mode selected
 selectMode('scan');
+
+// Export to window for HTML event handlers
+Object.assign(window, {
+  switchAuth, selectPlan, doLogin, demoLogin, doRegister, adminLogin, loginUser, logout,
+  showPage, simulateConnect, selectMode, setDays, setMonths, startLearning, saveBrain,
+  openConv, sendAgentMsg, escalateHuman, refreshAPIs, showInviteModal, hideModal, handleAgentKey
+});
 </script>
 </body>
 </html>
