@@ -284,7 +284,21 @@ io.on('connection', socket => {
 // ═══════════════════════════════════
 
 // Status
-app.get('/api/status',(req,res)=>res.json({status:'ok',version:'2.0.0',waSessions:waSessions.size}));
+app.get('/api/status', (req, res) => res.json({ status: 'ok', version: '2.0.0', waSessions: waSessions.size }));
+
+app.post('/api/wa/connect', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    // Si ya hay sesión, intentar reconectar o borrar para nueva
+    if (waSessions.has(userId)) {
+       const sock = waSessions.get(userId);
+       sock.logout().catch(() => {});
+       waSessions.delete(userId);
+    }
+    connectWhatsApp(userId);
+    res.json({ message: 'Procesando conexión de WhatsApp...' });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
 
 // Auth
 app.post('/api/auth/register', async (req,res) => {

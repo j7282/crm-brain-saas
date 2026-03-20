@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Darwin · CRM Neuronal WhatsApp</title>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -572,44 +573,8 @@ input[type=range]{accent-color:var(--green);height:4px;padding:0;border:none;bac
             </div>
             <div class="qr-frame qr-corners" id="qr-container">
               <div class="qr-scan-line"></div>
-              <!-- QR Pattern -->
-              <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="10" y="10" width="60" height="60" rx="4" fill="none" stroke="var(--text)" stroke-width="3"/>
-                <rect x="22" y="22" width="36" height="36" rx="2" fill="var(--text)"/>
-                <rect x="110" y="10" width="60" height="60" rx="4" fill="none" stroke="var(--text)" stroke-width="3"/>
-                <rect x="122" y="22" width="36" height="36" rx="2" fill="var(--text)"/>
-                <rect x="10" y="110" width="60" height="60" rx="4" fill="none" stroke="var(--text)" stroke-width="3"/>
-                <rect x="22" y="122" width="36" height="36" rx="2" fill="var(--text)"/>
-                <rect x="82" y="10" width="8" height="8" fill="var(--text)"/>
-                <rect x="82" y="26" width="8" height="8" fill="var(--text)"/>
-                <rect x="82" y="42" width="8" height="8" fill="var(--text)"/>
-                <rect x="82" y="58" width="8" height="8" fill="var(--text)"/>
-                <rect x="98" y="18" width="8" height="8" fill="var(--text)"/>
-                <rect x="98" y="34" width="8" height="8" fill="var(--text)"/>
-                <rect x="98" y="50" width="8" height="8" fill="var(--text)"/>
-                <rect x="82" y="82" width="8" height="8" fill="var(--text)"/>
-                <rect x="98" y="82" width="8" height="8" fill="var(--text)"/>
-                <rect x="114" y="82" width="8" height="8" fill="var(--text)"/>
-                <rect x="130" y="82" width="8" height="8" fill="var(--text)"/>
-                <rect x="146" y="82" width="8" height="8" fill="var(--text)"/>
-                <rect x="162" y="82" width="8" height="8" fill="var(--text)"/>
-                <rect x="82" y="98" width="8" height="8" fill="var(--text)"/>
-                <rect x="114" y="98" width="8" height="8" fill="var(--text)"/>
-                <rect x="146" y="98" width="8" height="8" fill="var(--text)"/>
-                <rect x="82" y="114" width="8" height="8" fill="var(--text)"/>
-                <rect x="98" y="114" width="8" height="8" fill="var(--text)"/>
-                <rect x="130" y="114" width="8" height="8" fill="var(--text)"/>
-                <rect x="162" y="114" width="8" height="8" fill="var(--text)"/>
-                <rect x="82" y="130" width="8" height="8" fill="var(--text)"/>
-                <rect x="114" y="130" width="8" height="8" fill="var(--text)"/>
-                <rect x="98" y="146" width="8" height="8" fill="var(--text)"/>
-                <rect x="130" y="146" width="8" height="8" fill="var(--text)"/>
-                <rect x="146" y="146" width="8" height="8" fill="var(--text)"/>
-                <rect x="82" y="162" width="8" height="8" fill="var(--text)"/>
-                <rect x="114" y="162" width="8" height="8" fill="var(--text)"/>
-                <rect x="146" y="162" width="8" height="8" fill="var(--text)"/>
-                <rect x="162" y="162" width="8" height="8" fill="var(--text)"/>
-              </svg>
+              <img id="qr-image" src="" style="width:180px;height:180px;display:none;position:relative;z-index:1;" />
+              <div id="qr-placeholder" style="width:180px;height:180px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;">Cargando QR...</div>
             </div>
             <div style="margin-top:16px;font-family:var(--mono);font-size:11px;color:var(--text3);">Código expira en <span id="qr-timer" style="color:var(--amber);">2:00</span></div>
             <button class="btn btn-ghost" style="margin-top:8px;font-size:12px;color:var(--text2);" onclick="simulateConnect()">Simular conexión (demo) →</button>
@@ -1107,7 +1072,8 @@ function loginUser(user){
   const h = new Date().getHours();
   document.getElementById('dash-greeting').textContent = (h<12 ? 'Buenos días' : h<18 ? 'Buenas tardes' : 'Buenas noches') + ' ' + user.name.split(' ')[0] + ' · Tu agente Darwin está listo';
   buildConvList();
-  startQRTimer();
+  showPage('dashboard');
+  initSocket();
 }
 
 function logout(){
@@ -1126,6 +1092,13 @@ function showPage(name){
   document.querySelectorAll('.nav-item').forEach(n=>{
     if(n.getAttribute('onclick')?.includes("'"+name+"'")) n.classList.add('active');
   });
+
+  if (name === 'whatsapp' && !waConnected) {
+    fetch(BACKEND_URL + '/api/wa/connect', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+    }).catch(console.error);
+  }
 }
 
 // ── WHATSAPP ──
@@ -1397,8 +1370,72 @@ selectMode('scan');
 Object.assign(window, {
   switchAuth, selectPlan, doLogin, demoLogin, doRegister, adminLogin, loginUser, logout,
   showPage, simulateConnect, selectMode, setDays, setMonths, startLearning, saveBrain,
-  openConv, sendAgentMsg, escalateHuman, refreshAPIs, showInviteModal, hideModal, handleAgentKey
+  openConv, sendAgentMsg, escalateHuman, refreshAPIs, showInviteModal, hideModal, handleAgentKey, initSocket
 });
+
+let socket = null;
+function initSocket() {
+  if (socket) return;
+  socket = io(BACKEND_URL);
+  socket.on('connect', () => {
+    socket.emit('join', currentUser.id);
+    console.log('Socket conectado:', socket.id);
+  });
+
+  socket.on('qr', (data) => {
+    console.log('QR recibido');
+    const img = document.getElementById('qr-image');
+    const placeholder = document.getElementById('qr-placeholder');
+    if (img && placeholder) {
+      img.src = data.qr;
+      img.style.display = 'block';
+      placeholder.style.display = 'none';
+      startQRTimer();
+    }
+  });
+
+  socket.on('wa-status', (data) => {
+    console.log('WA Status:', data);
+    waConnected = data.connected;
+    updateWAUI(data.connected, data.phone);
+    if (data.connected && document.getElementById('page-whatsapp').classList.contains('active')) {
+      setTimeout(() => showPage('dashboard'), 1500);
+    }
+  });
+
+  socket.on('new-message', (msg) => {
+    console.log('Nuevo mensaje:', msg);
+    // Actualizar lista de conversaciones si es necesario, o chat activo
+    if (activeConv && activeConv.phone === msg.phone) {
+      convChatHistory[msg.phone] = convChatHistory[msg.phone] || [];
+      convChatHistory[msg.phone].push({role:'client', text:msg.text, mediaType:msg.mediaType, timestamp:new Date()});
+      renderMessages(msg.phone);
+    }
+    // Notificación visual opcional
+  });
+}
+
+function updateWAUI(connected, phone) {
+  const badge = document.getElementById('qr-status-badge');
+  const topBadge = document.getElementById('topbar-wa-status');
+  const sysWa = document.getElementById('sys-wa-dot');
+  const sysWaBadge = document.getElementById('sys-wa-badge');
+  const sideWa = document.getElementById('sidebar-wa-sub');
+
+  if (connected) {
+    if(badge) { badge.className='badge badge-green'; badge.innerHTML='<span class="dot dot-green"></span> WhatsApp Conectado'; }
+    if(topBadge) { topBadge.className='badge badge-green'; topBadge.innerHTML='<span class="dot dot-green"></span> WhatsApp conectado'; }
+    if(sysWa) sysWa.style.background='var(--green)';
+    if(sysWaBadge) { sysWaBadge.className='badge badge-green'; sysWaBadge.textContent='Conectado'; }
+    if(sideWa) sideWa.textContent = phone || 'Conectado';
+  } else {
+    if(badge) { badge.className='badge badge-amber'; badge.innerHTML='<span class="dot dot-amber"></span> Esperando conexión'; }
+    if(topBadge) { topBadge.className='badge badge-amber'; topBadge.innerHTML='<span class="dot dot-amber"></span> WhatsApp desconectado'; }
+    if(sysWa) sysWa.style.background='var(--amber)';
+    if(sysWaBadge) { sysWaBadge.className='badge badge-amber'; sysWaBadge.textContent='Desconectado'; }
+    if(sideWa) sideWa.textContent = 'Desconectado';
+  }
+}
 </script>
 </body>
 </html>
