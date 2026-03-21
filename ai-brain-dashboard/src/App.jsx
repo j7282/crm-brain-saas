@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react'
-import { io } from 'socket.io-client'
+import socket from './socket'
 import './App.css'
 
-const BACKEND_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:3000'
-  : 'https://crm-brain-backend.onrender.com';
+const BACKEND_URL = 'https://zestful-alignment-production-c71f.up.railway.app';
 import {
   BrainCircuit,
   MessageSquareText,
@@ -21,7 +19,7 @@ import {
   Zap
 } from 'lucide-react'
 
-const socket = io(BACKEND_URL);
+// socket is now imported from ./socket.js
 
 // --- Professional Memoized Sub-components J7282 ---
 
@@ -131,7 +129,7 @@ function App() {
   const [isTyping, setIsTyping] = useState(false);
   const [currentSentiment, setCurrentSentiment] = useState('red');
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(localStorage.getItem('darwin_token'));
   const [authMode, setAuthMode] = useState('login'); // 'login' or 'register'
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -202,65 +200,39 @@ function App() {
     }
   }, [realMessages]);
 
-  // Polling para QR de WhatsApp con auto-reset si no aparece
+  // Manejo de Socket.io en tiempo real J7282
   useEffect(() => {
-    let interval;
-    let pollCount = 0;
-    const MAX_POLLS_BEFORE_RESET = 30; // 60 segundos sin QR = reintentar (Render es lento)
-    
-    // Función de chequeo de estado para bypass
-    const checkStatus = async () => {
-      if (!token) return;
-      try {
-        const res = await fetch(`${BACKEND_URL}/api/whatsapp/qr`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        setWaQR(data.qr);
-        setWaStatus(data.status);
+    if (!token || !user) return;
 
-        if (data.status === 'connected') {
-          setWaQR(null);
-          if (isOnboarding) {
-            console.log('[WhatsApp] Auto-bypass onboarding: connected');
-            setIsOnboarding(false);
-            setActiveTab('inbox');
-          }
-          return true;
-        }
-        return false;
-      } catch (err) { return false; }
+    // Join room del usuario
+    socket.emit('join', user.id || user.userId);
+    console.log('[Socket] Joined room:', user.id || user.userId);
+
+    const handleQR = (data) => {
+      console.log('[Socket] QR Recibido');
+      setWaQR(data.qr);
     };
 
-    if (token) {
-      checkStatus();
-      interval = setInterval(async () => {
-        const connected = await checkStatus();
-        if (connected) {
-          clearInterval(interval);
-          return;
+    const handleStatus = (data) => {
+      console.log('[Socket] Status:', data);
+      setWaStatus(data.connected ? 'connected' : 'disconnected');
+      if (data.connected) {
+        setWaQR(null);
+        if (isOnboarding) {
+          setIsOnboarding(false);
+          setActiveTab('inbox');
         }
+      }
+    };
 
-        if (isOnboarding && onboardingStep === 2) {
-          // Lógica de reset si no hay QR
-          pollCount++;
-          if (pollCount >= MAX_POLLS_BEFORE_RESET) {
-            console.log('[WhatsApp] Auto-reset triggered');
-            pollCount = 0;
-            fetch(`${BACKEND_URL}/api/whatsapp/reset`, {
-              method: 'POST',
-              headers: {
-                'X-App-Version': '1.6.4-MULTIMEDIA',
-                'Authorization': `Bearer ${token}`
-              }
-            });
-          }
-        }
-      }, 3000);
-    }
-    return () => clearInterval(interval);
-  }, [isOnboarding, onboardingStep, token]);
+    socket.on('qr', handleQR);
+    socket.on('wa-status', handleStatus);
+
+    return () => {
+      socket.off('qr', handleQR);
+      socket.off('wa-status', handleStatus);
+    };
+  }, [token, user, isOnboarding]);
 
   // Polling para Chats - Optimizado a 15s J7282
   useEffect(() => {
@@ -409,7 +381,7 @@ function App() {
     if (token && selectedChatJid) {
       const fetchInitialMessages = async () => {
         try {
-          const res = await fetch(`${BACKEND_URL}/api/whatsapp/messages/${selectedChatJid}?limit=40`, {
+          const res = await fetch(`${BACKEND_URL}/api/conversations/${selectedChatJid.split('@')[0]}?limit=40`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const data = await res.json();
@@ -431,7 +403,7 @@ function App() {
     
     try {
       const firstMsgTimestamp = realMessages[0]?.timestamp;
-      const res = await fetch(`${BACKEND_URL}/api/whatsapp/messages/${selectedChatJid}?limit=40&before=${firstMsgTimestamp}`, {
+      const res = await fetch(`${BACKEND_URL}/api/conversations/${selectedChatJid.split('@')[0]}?limit=40&before=${firstMsgTimestamp}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -475,14 +447,13 @@ function App() {
     if (!text.trim() || !selectedChatJid) return;
 
     try {
-      const res = await fetch(`${BACKEND_URL}/api/whatsapp/send`, {
+      const res = await fetch(`${BACKEND_URL}/api/conversations/${selectedChatJid.split('@')[0]}/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          jid: selectedChatJid,
           text: text
         })
       });
@@ -743,20 +714,21 @@ function App() {
                 <p style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem', marginBottom: '8px' }}>
                   {waStatus === 'connected' ? '¡Dispositivo Vinculado! ✅' : 'Escanea este código con tu WhatsApp'}
                 </p>
-                {!waQR && waStatus !== 'connected' && (
-                  <button
-                    onClick={async () => {
-                      setWaQR(null);
-                      await fetch(`${BACKEND_URL}/api/whatsapp/reset`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${token}` }
-                      });
-                    }}
-                    style={{ fontSize: '0.75rem', background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '4px 12px', borderRadius: '8px', cursor: 'pointer', marginTop: '4px' }}
-                  >
-                    🔄 Reintentar QR
-                  </button>
-                )}
+                  {!waQR && waStatus !== 'connected' && (
+                    <button
+                      onClick={async () => {
+                        console.log('[WhatsApp] Mandando connect...');
+                        setWaQR(null);
+                        await fetch(`${BACKEND_URL}/api/whatsapp/connect`, {
+                          method: 'POST',
+                          headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                      }}
+                      style={{ fontSize: '0.75rem', background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '4px 12px', borderRadius: '8px', cursor: 'pointer', marginTop: '4px' }}
+                    >
+                      🔄 Vincular WhatsApp
+                    </button>
+                  )}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
@@ -937,7 +909,7 @@ function App() {
 
                 <div style={{ marginTop: 'auto', padding: '16px' }}>
                   <div className="nav-item" onClick={() => {
-                    localStorage.removeItem('token');
+                    localStorage.removeItem('darwin_token');
                     setToken(null);
                     setUser(null);
                   }} title="Cerrar Sesión">
