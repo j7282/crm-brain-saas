@@ -121,10 +121,8 @@ function App() {
   const [waStatus, setWaStatus] = useState('disconnected');
   const [activeTab, setActiveTab] = useState(localStorage.getItem('activeTab') || 'inbox');
 
-  // Simulación de Chat
-  const [messages, setMessages] = useState([
-    { role: 'ai', text: 'Hola Carlos. Entiendo completamente tu preocupación. Una disculpa por la demora, estábamos verificando el reflejo del pago en el sistema bancario.' }
-  ]);
+  // Real Data State
+  const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [currentSentiment, setCurrentSentiment] = useState('red');
@@ -170,6 +168,35 @@ function App() {
     if (activeBrainId) localStorage.setItem('activeBrainId', activeBrainId);
     if (brainName) localStorage.setItem('activeBrainName', brainName);
   }, [isOnboarding, activeTab, activeBrainId, brainName]);
+
+  // Persistent Auth & WhatsApp Status J7282
+  useEffect(() => {
+    if (token && !user) {
+      fetch(`${BACKEND_URL}/api/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.userId || data.id) {
+          // Normalizar id/userId
+          const normalized = { ...data, id: data.id || data.userId };
+          setUser(normalized);
+        }
+      })
+      .catch(err => console.error("Error fetching me:", err));
+    }
+    
+    if (token) {
+      fetch(`${BACKEND_URL}/api/whatsapp/status`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        setWaStatus(data.connected ? 'connected' : 'disconnected');
+      })
+      .catch(err => console.error("Error fetching initial status:", err));
+    }
+  }, [token]);
 
   // Recuperar cerebros al iniciar para saltar onboarding
   useEffect(() => {
@@ -561,7 +588,7 @@ function App() {
                   const data = await res.json();
                   if (data.token) {
                     setToken(data.token);
-                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('darwin_token', data.token);
                     setUser(data.user);
                   } else {
                     alert(data.error || "Algo salió mal");
@@ -619,7 +646,7 @@ function App() {
                     },
                     body: JSON.stringify({
                       query: lastQuery,
-                      aiResponse: messages[messages.length - 1]?.text, // La última respuesta de la IA que estamos corrigiendo
+                      aiResponse: realMessages[realMessages.length - 1]?.text, // La última respuesta de la IA que estamos corrigiendo
                       correction: suggestedResponse
                     })
                   });
@@ -627,7 +654,7 @@ function App() {
                   console.error("Error entrenando:", err);
                 }
               }
-              setMessages(prev => [...prev.slice(0, -1), { role: 'ai', text: suggestedResponse }]);
+              setRealMessages(prev => [...prev.slice(0, -1), { role: 'ai', text: suggestedResponse }]);
               setIsInterventionMode(false);
             }}>Enviar y Entregar IA</button>
           </div>
@@ -771,9 +798,11 @@ function App() {
                       className={`secondary-btn ${historyMonths === btn ? 'active' : ''}`}
                       style={{
                         flex: 1,
-                        padding: '8px',
-                        border: historyMonths === btn ? '2px solid var(--accent-cyan)' : '1px solid var(--border-color)',
-                        backgroundColor: historyMonths === btn ? 'rgba(0, 240, 255, 0.1)' : 'transparent'
+                        background: historyMonths === btn ? 'var(--wa-green)' : 'none',
+                        color: historyMonths === btn ? '#fff' : 'var(--text-secondary)',
+                        borderColor: historyMonths === btn ? 'var(--wa-green)' : 'var(--border-color)',
+                        padding: '12px',
+                        fontSize: '0.8rem'
                       }}
                       onClick={() => setHistoryMonths(btn)}
                     >
@@ -783,710 +812,394 @@ function App() {
                 </div>
               </div>
 
-              <div style={{
-                backgroundColor: 'rgba(0, 240, 255, 0.05)',
-                border: '1px solid rgba(0, 240, 255, 0.2)',
-                padding: '16px',
-                borderRadius: '8px',
-                marginBottom: '32px',
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '12px'
-              }}>
-                <div style={{ fontSize: '1.2rem' }}>👁️</div>
-                <div>
-                  <h4 style={{ color: 'var(--accent-cyan)', marginBottom: '4px' }}>Modo Espejo (Observador)</h4>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                    La IA solo leerá tus respuestas actuales sin contestar automáticamente por 7 días, aprendiendo en tiempo real tu técnica de cierre.
-                  </p>
-                </div>
-                <div style={{ marginLeft: 'auto' }}>
-                  <input
-                    type="checkbox"
-                    style={{ transform: 'scale(1.5)', cursor: 'pointer' }}
-                    checked={mirrorMode}
-                    onChange={(e) => setMirrorMode(e.target.checked)}
-                  />
+              <div className="setting-card" style={{ marginBottom: '32px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Modo Espejo J7282</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>La IA solo observa y aprende sin responder.</div>
+                  </div>
+                  <div 
+                    className={`toggle-switch ${mirrorMode ? 'active' : ''}`}
+                    onClick={() => setMirrorMode(!mirrorMode)}
+                  >
+                    <div className="toggle-knob"></div>
+                  </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <button className="secondary-btn" onClick={() => setOnboardingStep(2)}>
-                  ← Volver
-                </button>
-                <button className="primary-btn" onClick={async () => {
-                  try {
-                    const res = await fetch(`${BACKEND_URL}/api/brains`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                      },
-                      body: JSON.stringify({
-                        name: brainName,
-                        niche: 'Ventas Automáticas',
-                        historyLimit: historyMonths,
-                        personalityTraits: {
-                          isMirrorMode: true, // Siempre empezamos en Vigilante J7282
-                          isWhatsAppStyle: true,
-                          aggressivenessLevel: 5
-                        }
-                      })
-                    });
-                    const data = await res.json();
-                    if (data._id) {
-                      setActiveBrainId(data._id);
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  className="primary-btn"
+                  onClick={async () => {
+                    // Finalizar onboarding y crear cerebro en el backend
+                    try {
+                      const res = await fetch(`${BACKEND_URL}/api/brains`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                          nombre: brainName,
+                          personalityTraits: {
+                            isMirrorMode: mirrorMode,
+                            historyMonths: historyMonths
+                          }
+                        })
+                      });
+                      const data = await res.json();
+                      if (data._id) {
+                        setActiveBrainId(data._id);
+                        setIsOnboarding(false);
+                      }
+                    } catch (err) {
                       setIsOnboarding(false);
                     }
-                  } catch (_err) {
-                    alert("Error guardando el cerebro.");
-                  }
-                }}>
-                  Activar Cerebro e ir al Dashboard
+                  }}
+                  style={{ background: 'linear-gradient(135deg, #00A884, #005A4E)' }}
+                >
+                  Finalizar Configuración →
                 </button>
               </div>
             </div>
           )}
-
         </div>
       </div>
     );
   };
 
+  const renderDashboard = () => {
+    return (
+      <div className="dashboard-content dashboard-grid">
+        <div className="card stat-card">
+          <div className="card-label">Salud del Cerebro</div>
+          <div className="stat-value">98.4%</div>
+          <div style={{ color: 'var(--wa-green)', fontSize: '0.75rem', marginTop: '8px' }}>+1.2% vs ayer</div>
+        </div>
+        <div className="card stat-card">
+          <div className="card-label">ADN Recolectado</div>
+          <div className="stat-value">{chats.length > 0 ? 'Fase 2' : 'Fase 1'}</div>
+          <div style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem', marginTop: '8px' }}>
+            {chats.length > 0 ? `${chats.length} conversaciones base` : 'Escaneando historial...'}
+          </div>
+        </div>
+        <div className="card stat-card">
+          <div className="card-label">Sincronización</div>
+          <div className="stat-value" style={{ color: waStatus === 'connected' ? 'var(--wa-green)' : '#ff5252' }}>
+            {waStatus === 'connected' ? 'LIVE' : 'OFF'}
+          </div>
+        </div>
+
+        <div className="card" style={{ gridColumn: 'span 2' }}>
+          <div className="card-header">
+            <h3 className="card-title">Rendimiento Cognitivo J7282</h3>
+          </div>
+          <div style={{ height: '200px', display: 'flex', alignItems: 'flex-end', gap: '12px', padding: '10px' }}>
+            {[45, 67, 89, 72, 95, 88, 98].map((h, i) => (
+              <div key={i} style={{ flex: 1, backgroundColor: 'var(--wa-green)', opacity: 0.3 + (i*0.1), height: h + '%', borderRadius: '4px' }}></div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Próxima Acción Elite J7282</h3>
+          </div>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+            {waStatus === 'connected' 
+              ? 'El cerebro está en modo espejo. Analizando 14 conversaciones activas.' 
+              : 'Conecta WhatsApp para iniciar la recolección de ADN neuronal.'}
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+  if (!token) return renderAuth();
+  if (isOnboarding) return renderOnboarding();
+
   return (
-    <div className="app-container">
-      {!token ? renderAuth() : (
-        <>
-          {isOnboarding ? renderOnboarding() : (
-            <>
-              {isInterventionMode && renderInterventionModal()}
-              {/* Sidebar */}
-              <aside className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-                <div className="sidebar-header" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
-                  <div className="logo-icon grow">🧠</div>
-                  {!isSidebarCollapsed && <div className="logo-text">ANTIGRAVITY</div>}
+    <div className={`app-container ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+      {isInterventionMode && renderInterventionModal()}
+      
+      {/* Sidebar J7282 */}
+      <div className="sidebar">
+        <div className="sidebar-header" style={{ padding: isSidebarCollapsed ? '20px 0' : '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: isSidebarCollapsed ? 'center' : 'flex-start' }}>
+            <div className="logo-icon">🧠</div>
+            {!isSidebarCollapsed && (
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '1rem', color: '#fff' }}>DARWIN</div>
+                <div style={{ fontSize: '0.6rem', color: 'var(--wa-green)', letterSpacing: '1px' }}>V2.0 NEURONAL</div>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <div className="sidebar-nav">
+          <div className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')} title="Dashboard">
+            <LineChart size={20} />
+            {!isSidebarCollapsed && <span>Vista General</span>}
+          </div>
+          <div className={`nav-item ${activeTab === 'inbox' ? 'active' : ''}`} onClick={() => setActiveTab('inbox')} title="Live Agent">
+            <MessageSquareText size={20} />
+            {!isSidebarCollapsed && <span>Agente en Vivo</span>}
+          </div>
+          <div className={`nav-item ${activeTab === 'mirror' ? 'active' : ''}`} onClick={() => setActiveTab('mirror')} title="Cerebro Espejo">
+            <Zap size={20} />
+            {!isSidebarCollapsed && <span>Cerebro Espejo</span>}
+          </div>
+          <div className={`nav-item ${activeTab === 'lab' ? 'active' : ''}`} onClick={() => setActiveTab('lab')} title="Laboratorio">
+            <Cpu size={20} />
+            {!isSidebarCollapsed && <span>Laboratorio</span>}
+          </div>
+          
+          <div style={{ marginTop: 'auto', padding: '16px' }}>
+            <div className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')} title="Configuración">
+              <Settings size={20} />
+              {!isSidebarCollapsed && <span>Configuración</span>}
+            </div>
+            <div className="nav-item" onClick={() => {
+              localStorage.removeItem('darwin_token');
+              setToken(null);
+              setUser(null);
+            }} title="Cerrar Sesión">
+              <ShieldAlert size={20} />
+              {!isSidebarCollapsed && <span>Cerrar Sesión</span>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content J7282 */}
+      <div className="main-content">
+        <div className="top-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <h1 style={{ fontSize: '1.2rem', margin: 0, color: 'var(--text-primary)' }}>
+              {activeTab === 'dashboard' && 'Dashboard Estratégico'}
+              {activeTab === 'inbox' && 'Agente de Ventas en Vivo'}
+              {activeTab === 'mirror' && 'Modo Espejo (Aprendizaje)'}
+              {activeTab === 'lab' && 'Laboratorio Neuronal'}
+              {activeTab === 'settings' && 'Log Corporativo'}
+            </h1>
+            <div className="status-badge">
+              <div className="status-dot pulsed" style={{ backgroundColor: waStatus === 'connected' ? 'var(--wa-green)' : '#ff5252' }}></div>
+              <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>{waStatus === 'connected' ? 'SISTEMA ONLINE' : 'WA DESCONECTADO'}</span>
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+             {!isSidebarCollapsed && (
+               <div style={{ textAlign: 'right' }}>
+                 <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{user?.email || 'Admin User'}</div>
+                 <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>Elite License Elite J7282</div>
+               </div>
+             )}
+             <div className="avatar" style={{ width: '35px', height: '35px', borderRadius: '8px' }}>
+               {user?.email?.substring(0, 1).toUpperCase() || 'A'}
+             </div>
+          </div>
+        </div>
+
+        <div className="scrollable-content">
+          {activeTab === 'dashboard' && renderDashboard()}
+          
+          {activeTab === 'inbox' && (
+            <div className="inbox-layout">
+              <div className="chat-list-container">
+                <div className="inbox-header">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                    <h3 style={{ margin: 0 }}>Chats de Ventas</h3>
+                    <div className="status-badge" style={{ padding: '4px 8px' }}>
+                      {chats.length} totales
+                    </div>
+                  </div>
+                  
+                  <div className="filter-pill-container">
+                    {['Por resolver', 'Resueltos', 'Todos'].map(f => (
+                      <div 
+                        key={f}
+                        className={`filter-pill ${inboxFilterStatus === f ? 'active' : ''}`}
+                        onClick={() => setInboxFilterStatus(f)}
+                      >
+                        {f}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-
-                <div className="account-selector">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div className="status-dot green"></div>
-                    {!isSidebarCollapsed && (
-                      <div>
-                        <div className="label">Cerebro Activo</div>
-                        <div className="value">{brainName || "Cerebro Central"}</div>
-                      </div>
-                    )}
-                  </div>
-                  {!isSidebarCollapsed && <ChevronDown size={16} />}
+                
+                <div className="chat-list" onScroll={handleChatListScroll}>
+                  {filteredChats.slice(0, chatRenderLimit).map(chat => (
+                    <ChatListItem 
+                      key={chat.jid} 
+                      chat={chat} 
+                      isActive={selectedChatJid === chat.jid}
+                      onClick={handleChatClick}
+                    />
+                  ))}
+                  {isLoadingMoreChats && (
+                    <div style={{ textAlign: 'center', padding: '10px', fontSize: '0.8rem', opacity: 0.7 }}>
+                      Cargando más chats...
+                    </div>
+                  )}
+                  {filteredChats.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
+                      No hay conversaciones para mostrar.
+                    </div>
+                  )}
                 </div>
+              </div>
 
-                <nav className="nav-menu">
-                  <div className={`nav-item ${activeTab === 'inbox' ? 'active' : ''}`} onClick={() => setActiveTab('inbox')} title="Bandeja de Entrada">
-                    <MessageSquareText size={20} />
-                    {!isSidebarCollapsed && <span>Bandeja de Entrada</span>}
-                  </div>
-                  <div className={`nav-item ${activeTab === 'mirror' ? 'active' : ''}`} onClick={() => setActiveTab('mirror')} title="WhatsApp Real">
-                    <Zap size={20} style={{ color: '#ff9800' }} />
-                    {!isSidebarCollapsed && <span style={{ fontWeight: 700 }}>WhatsApp Real</span>}
-                  </div>
-                  <div className={`nav-item ${activeTab === 'kanban' ? 'active' : ''}`} onClick={() => setActiveTab('kanban')} title="Pipeline Kanban">
-                    <LineChart size={20} />
-                    {!isSidebarCollapsed && <span>Pipeline Kanban</span>}
-                  </div>
-                  <div className={`nav-item ${activeTab === 'lab' ? 'active' : ''}`} onClick={() => setActiveTab('lab')} title="Laboratorio Neuronal">
-                    <Cpu size={20} />
-                    {!isSidebarCollapsed && <span>Laboratorio Neuronal</span>}
-                  </div>
-                  <div className={`nav-item ${activeTab === 'voice' ? 'active' : ''}`} onClick={() => setActiveTab('voice')} title="Clonador de Voz">
-                    <Mic size={20} />
-                    {!isSidebarCollapsed && <span>Clonador de Voz</span>}
-                  </div>
-                  <div className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')} title="Supervisión">
-                    <ShieldAlert size={20} />
-                    {!isSidebarCollapsed && <span>Supervisión</span>}
-                  </div>
-                </nav>
-
-                <div style={{ marginTop: 'auto', padding: '16px' }}>
-                  <div className="nav-item" onClick={() => {
-                    localStorage.removeItem('darwin_token');
-                    setToken(null);
-                    setUser(null);
-                  }} title="Cerrar Sesión">
-                    <Bot size={20} />
-                    {!isSidebarCollapsed && <span>Cerrar Sesión</span>}
-                  </div>
-                </div>
-              </aside>
-              {/* Main Content (Keep original routing logic here or similar) */}
-              <main className="main-content">
-                {activeTab === 'inbox' && (
-                  <div className="inbox-layout">
-                    {/* Chat List (Sidebar of Inbox) */}
-                    <div className="chat-list">
-                      <div className="inbox-header-tabs" style={{ alignItems: 'center', padding: '0 15px', borderBottom: '1px solid var(--border-color)', height: '60px' }}>
-                        <div className={`inbox-tab ${inboxFilterStatus === 'Por resolver' ? 'active' : ''}`} onClick={() => setInboxFilterStatus('Por resolver')}>Por resolver</div>
-                        <div className={`inbox-tab ${inboxFilterStatus === 'Resueltos' ? 'active' : ''}`} onClick={() => setInboxFilterStatus('Resueltos')}>Resueltos</div>
-                        <div className={`inbox-tab ${inboxFilterStatus === 'Todos' ? 'active' : ''}`} onClick={() => setInboxFilterStatus('Todos')}>Todos ({totalChats})</div>
-                        
-                        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                           {/* Escudo de Protección de Cerebro */}
-                           <div style={{ 
-                             display: 'flex', 
-                             alignItems: 'center', 
-                             gap: '6px', 
-                             backgroundColor: 'rgba(53, 162, 235, 0.08)', 
-                             padding: '6px 12px', 
-                             borderRadius: '8px',
-                             border: '1px solid rgba(53, 162, 235, 0.2)'
-                           }} title="Tu entrenamiento y configuración están blindados en la base de datos central.">
-                             <ShieldAlert size={14} style={{ color: 'var(--accent-blue)' }} />
-                             <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--accent-blue)', letterSpacing: '0.5px' }}>CEREBRO BLINDADO</span>
-                           </div>
-
-                           <span style={{ 
-                             fontSize: '0.7rem', 
-                             color: waStatus === 'connected' ? 'var(--wa-green)' : '#ff5252',
-                             backgroundColor: waStatus === 'connected' ? 'rgba(37, 211, 102, 0.1)' : 'rgba(255, 82, 82, 0.1)',
-                             padding: '6px 10px',
-                             borderRadius: '8px',
-                             fontWeight: 600,
-                             border: waStatus === 'connected' ? '1px solid rgba(37, 211, 102, 0.2)' : '1px solid rgba(255, 82, 82, 0.2)'
-                           }}>
-                             {waStatus === 'connected' ? '● EN LÍNEA' : '● DESCONECTADO'}
-                           </span>
-                           <button 
-                               onClick={() => fetch(`${BACKEND_URL}/api/whatsapp/sync-previews`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } })}
-                               style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', display: 'flex', alignItems: 'center' }}
-                               title="Sincronizar Mensajes"
-                           >
-                               🔄
-                           </button>
+              <div className="chat-window">
+                {selectedChatJid ? (
+                  <>
+                    <div className="chat-window-header">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div className="avatar">
+                           {chats.find(c => c.jid === selectedChatJid)?.pushName?.substring(0, 1).toUpperCase() || 'W'}
                         </div>
-                      </div>
-
-                      <div className="inbox-assignee-filters">
-                        <div className={`filter-chip ${inboxFilterAssignee === 'all' ? 'active' : ''}`} onClick={() => setInboxFilterAssignee('all')}>Todos</div>
-                        <div className={`filter-chip ${inboxFilterAssignee === 'me' ? 'active' : ''}`} onClick={() => setInboxFilterAssignee('me')}>👤 Míos</div>
-                        <div className={`filter-chip ${inboxFilterAssignee === 'ai' ? 'active' : ''}`} onClick={() => setInboxFilterAssignee('ai')}>🤖 De la IA</div>
-                        <div style={{ marginLeft: 'auto', fontSize: '0.7rem', opacity: 0.5 }}>Darwin v1.6.6</div>
-                      </div>
-
-                        <div className="chat-list-items" 
-                             style={{ flex: 1, overflowY: 'auto', background: '#fff', contain: 'content' }} 
-                             onScroll={handleChatListScroll}>
-                          {filteredChats.length === 0 && !isLoadingMoreChats ? (
-                            <div style={{ padding: '40px', textAlign: 'center', opacity: 0.5 }}>
-                              No hay chats que coincidan con los filtros.
-                            </div>
-                          ) : (
-                            filteredChats.slice(0, chatRenderLimit).map((chat) => (
-                              <ChatListItem 
-                                key={chat.jid} 
-                                chat={chat} 
-                                isActive={selectedChatJid === chat.jid}
-                                onClick={handleChatClick}
-                              />
-                            ))
-                          )}
-                        {isLoadingMoreChats && (
-                          <div className="shimmer-item" style={{ height: '72px', margin: '10px', background: '#f0f2f5', borderRadius: '8px' }}></div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="chat-view">
-                      {!selectedChatJid ? (
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', background: '#f0f2f5' }}>
-                          <Bot size={64} style={{ marginBottom: '24px', opacity: 0.1 }} />
-                          <h3 style={{ fontWeight: 500 }}>Darwin Elite Intelligence</h3>
-                          <p style={{ opacity: 0.6 }}>Selecciona un cliente para comenzar el cierre.</p>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="chat-view-header">
-                            <div className="header-user-info">
-                              <div className="avatar" style={{ width: '40px', height: '40px', marginRight: '12px' }}>
-                                {chats.find(c => c.jid === selectedChatJid)?.pushName?.substring(0, 2).toUpperCase()}
-                              </div>
-                              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span className="contact-name" style={{ fontSize: '1rem', fontWeight: 600 }}>
-                                  {chats.find(c => c.jid === selectedChatJid)?.pushName || selectedChatJid.split('@')[0]}
-                                </span>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--wa-green)', fontWeight: 500 }}>● Sincronizado J7282</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="messages-area" onScroll={handleScroll} style={{ background: '#efeae2' }}>
-                            {isLoadingMore && (
-                              <div style={{ textAlign: 'center', padding: '15px', fontSize: '0.75rem', color: '#667781' }}>
-                                Cargando historial...
-                              </div>
-                            )}
-                            {/* Solo renderizamos el lote actual solicitado para máxima velocidad J7282 */}
-                            {realMessages.map((msg, idx) => (
-                              <MessageBubble 
-                                key={msg._id || idx} 
-                                msg={msg} 
-                                isLast={idx === realMessages.length - 1} 
-                              />
-                            ))}
-                            <div ref={messagesEndRef} style={{ height: '1px' }} />
-                          </div>
-
-                          <ChatInput onSendMessage={handleSendMessage} />
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === 'mirror' && (
-                  <div className="mirror-layout" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0b141a', color: '#e9edef' }}>
-                     <div style={{ padding: '15px 25px', background: '#202c33', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #374045' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                           <div className="pulse-icon" style={{ width: '10px', height: '10px', background: '#00a884', borderRadius: '50%' }}></div>
-                           <span style={{ fontWeight: 600, fontSize: '1.1rem' }}>Sincronización de Alta Fidelidad J7282</span>
-                        </div>
-                        <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                           <button 
-                            onClick={() => window.location.reload()}
-                            style={{ background: '#00a884', color: '#fff', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', fontWeight: 600 }}
-                           >
-                             Forzar Re-carga J7282
-                           </button>
-                           <div style={{ fontSize: '0.85rem', color: '#8696a0' }}>Motor Darwin 2.0 Activo 🧠</div>
-                        </div>
-                     </div>
-                     <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: '20px', padding: '40px' }}>
-                        <Zap size={60} color="#ff9800" />
-                        <h2 style={{ margin: 0 }}>Modo Real-Time Optimizado</h2>
-                        <p style={{ maxWidth: '600px', textAlign: 'center', color: '#8696a0', lineHeight: '1.6' }}>
-                          Para evitar bloqueos de seguridad de Meta, hemos integrado la inteligencia de Darwin directamente en tu Inbox de la izquierda. 
-                          <br/><br/>
-                          <strong>Instrucciones:</strong> Si no ves mensajes, usa el botón "Forzar Re-carga" o asegúrate de que el Backend esté procesando el historial. Los mensajes aparecerán instantáneamente en tu Inbox Inteligente. J7282.
-                        </p>
-                     </div>
-                  </div>
-                )}
-
-                {activeTab === 'kanban' && (
-                  <div className="kanban-layout" style={{ padding: '40px', flex: 1, overflowY: 'auto' }}>
-                    <div style={{ marginBottom: '32px' }}>
-                      <h2 style={{ fontSize: '2rem', marginBottom: '8px' }}>Pipeline de Ventas Automático</h2>
-                      <p style={{ color: 'var(--text-secondary)' }}>La IA mueve a los clientes entre columnas según el progreso del cierre.</p>
-                    </div>
-
-                    <div className="kanban-board" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', alignItems: 'flex-start' }}>
-                      {['Prospecto', 'Cliente', 'VIP', 'Urgente', 'Seguimiento', 'Cerrado'].map((label) => {
-                        const labelChats = chats.filter(c => c.labels?.includes(label));
-                        return (
-                          <div key={label} className="kanban-column" style={{ background: 'rgba(0,0,0,0.02)', borderRadius: '12px', padding: '16px', border: '1px solid var(--border-color)', minHeight: '500px' }}>
-                            <div className="kanban-column-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '2px solid rgba(53, 162, 235, 0.3)', paddingBottom: '8px' }}>
-                              <span className="kanban-column-title" style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{label}</span>
-                              <span className="kanban-count" style={{ fontSize: '0.8rem', opacity: 0.5 }}>{labelChats.length}</span>
-                            </div>
-                            
-                            {labelChats.map(chat => (
-                              <div key={chat.jid} className="kanban-card" onClick={() => { setSelectedChatJid(chat.jid); setActiveTab('inbox'); }} style={{ background: 'var(--bg-secondary)', borderRadius: '8px', padding: '12px', marginBottom: '12px', border: '1px solid var(--border-color)', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                <div style={{ fontWeight: 600, marginBottom: '4px' }}>{chat.pushName || chat.jid.split('@')[0]}</div>
-                                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.lastMessage}</p>
-                                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                  <span className={`sentiment-badge bg-${chat.sentiment || 'yellow'}`} style={{ width: '8px', height: '8px' }}></span>
-                                  <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>{new Date(chat.lastTimestamp).toLocaleDateString()}</span>
-                                </div>
-                              </div>
-                            ))}
-
-                            {labelChats.length === 0 && (
-                              <div style={{ textAlign: 'center', padding: '40px 10px', fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
-                                Sin prospectos
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === 'lab' && (
-                  <div className="lab-layout" style={{ padding: 'var(--spacing-xl)', flex: 1, overflowY: 'auto' }}>
-                    <h2 style={{ fontSize: '1.8rem', marginBottom: '8px' }}>Laboratorio Neuronal</h2>
-                    <p style={{ color: 'var(--text-secondary)', marginBottom: '32px' }}>Configura las reglas de aprendizaje y comportamiento emocional de {brainName}.</p>
-
-                    <div className="settings-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '24px' }}>
-                      <h3 style={{ marginBottom: '16px', color: 'var(--text-primary)' }}>🧠 Rasgos de Personalidad (Traits)</h3>
-
-                      <div className="setting-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)' }}>
                         <div>
-                          <strong style={{ color: 'var(--text-primary)' }}>Estilo WhatsApp (Recomendado)</strong>
-                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Obliga a la IA a ser casual, usar emojis cortos y evitar lenguaje robótico o exigir correos electrónicos.</p>
-                        </div>
-                        <label className="switch">
-                          <input type="checkbox" checked={personalityWhatsApp} onChange={(e) => setPersonalityWhatsApp(e.target.checked)} />
-                          <span className="slider round"></span>
-                        </label>
-                      </div>
-
-                      <div className="setting-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)' }}>
-                        <div>
-                          <strong style={{ color: 'var(--text-primary)' }}>Prohibir Enviar Links</strong>
-                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Evita que la IA invente o envíe URLs largas que pueden romper la experiencia de chat móvil.</p>
-                        </div>
-                        <label className="switch">
-                          <input type="checkbox" checked={personalityForbidLinks} onChange={(e) => setPersonalityForbidLinks(e.target.checked)} />
-                          <span className="slider round"></span>
-                        </label>
-                      </div>
-
-                      <div className="setting-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)' }}>
-                        <div>
-                          <strong style={{ color: 'var(--accent-purple)' }}>Respuestas con Voz Clonada (Darwin Voice)</strong>
-                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Darwin responderá usando notas de voz con tu perfil replicado de ElevenLabs.</p>
-                        </div>
-                        <label className="switch">
-                          <input type="checkbox" checked={personalityUseVoice} onChange={(e) => setPersonalityUseVoice(e.target.checked)} />
-                          <span className="slider round" style={{ backgroundColor: personalityUseVoice ? 'var(--accent-purple)' : '' }}></span>
-                        </label>
-                      </div>
-
-                      <div className="setting-item">
-                        <div style={{ marginBottom: '8px' }}>
-                          <strong style={{ color: 'var(--text-primary)' }}>Agresividad de Cierre: <span style={{ color: 'var(--wa-green)' }}>{personalityAggressiveness}</span> / 10</strong>
-                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Nivel 1 es consultivo y paciente. Nivel 10 es un agente que empuja activamente al pago inmediato.</p>
-                        </div>
-                        <input type="range" min="1" max="10" value={personalityAggressiveness} onChange={(e) => setPersonalityAggressiveness(parseInt(e.target.value))} style={{ width: '100%', accentColor: 'var(--wa-green)' }} />
-                      </div>
-
-                      <div className="setting-item" style={{ marginTop: '24px', padding: '16px', backgroundColor: 'rgba(53, 162, 235, 0.05)', borderRadius: '8px', border: '1px solid rgba(53, 162, 235, 0.2)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div>
-                            <strong style={{ color: 'var(--accent-blue)' }}>🛡️ MODO VIGILANTE (Mirror Mode)</strong>
-                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Fase de 7 días. Darwin observa y analiza tus ventas pero **NO** responde a los clientes. Ideal para aprendizaje neuronal.</p>
-                          </div>
-                          <label className="switch">
-                            <input type="checkbox" checked={mirrorMode} onChange={(e) => setMirrorMode(e.target.checked)} />
-                            <span className="slider round"></span>
-                          </label>
+                          <div style={{ fontWeight: 600 }}>{chats.find(c => c.jid === selectedChatJid)?.pushName || selectedChatJid.split('@')[0]}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--wa-green)' }}>● EN LÍNEA</div>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="settings-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '24px' }}>
-                      <h3 style={{ marginBottom: '16px', color: 'var(--text-primary)' }}>🧬 Escaneo Neuronal de ADN (1-6 Meses)</h3>
-                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>Darwin analizará meses de historial para clonar tu tono, ganchos de cierre y vocabulario técnico automáticamente.</p>
-                      
-                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                        <select 
-                          className="input-field" 
-                          value={historyMonths} 
-                          onChange={(e) => setHistoryMonths(e.target.value)}
-                          style={{ flex: 1, height: '42px' }}
-                        >
-                          <option>1 Mes</option>
-                          <option>2 Meses</option>
-                          <option>3 Meses</option>
-                          <option>4 Meses</option>
-                          <option>5 Meses</option>
-                          <option>6 Meses</option>
-                        </select>
-                        <button 
-                          className="secondary-btn"
-                          style={{ minWidth: '150px', backgroundColor: 'var(--bg-navy)', color: 'white' }}
-                          onClick={async () => {
-                            if (!activeBrainId) return alert('Selecciona un cerebro primero.');
-                            try {
-                              const res = await fetch(`${BACKEND_URL}/api/whatsapp/scan-dna`, {
-                                method: 'POST',
-                                headers: { 
-                                  'Content-Type': 'application/json',
-                                  'Authorization': `Bearer ${token}`
-                                },
-                                body: JSON.stringify({ brainId: activeBrainId, months: parseInt(historyMonths) })
-                              });
-                              const data = await res.json();
-                              if (data.success) {
-                                alert('🧬 Escaneo de ADN iniciado. Darwin está procesando ' + historyMonths + ' de historial en segundo plano.');
-                              } else {
-                                alert('Error: ' + data.error);
-                              }
-                            } catch (e) {
-                              alert('Error de conexión al iniciar el escaneo.');
-                            }
-                          }}
-                        >
-                          Escanear ADN
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="settings-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '24px' }}>
-                      <h3 style={{ marginBottom: '16px', color: 'var(--text-primary)' }}>🌐 Alimentar con URL (Darwin Reader)</h3>
-                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>Pega el link de tu catálogo, blog o servicios para que la IA aprenda los detalles automáticamente.</p>
                       
                       <div style={{ display: 'flex', gap: '12px' }}>
-                        <input 
-                          type="text" 
-                          className="input-field" 
-                          placeholder="https://ejemplo.com/servicios" 
-                          value={knowledgeUrl}
-                          onChange={(e) => setKnowledgeUrl(e.target.value)}
-                          style={{ flex: 1 }}
+                        <button className={`secondary-btn ${mirrorMode ? 'active' : ''}`} style={{ padding: '6px 12px', fontSize: '0.7rem' }}>
+                          MODO ESPEJO {mirrorMode ? 'ON' : 'OFF'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="messages-area" onScroll={handleScroll} style={{ background: '#efeae2' }}>
+                      {isLoadingMore && (
+                        <div style={{ textAlign: 'center', padding: '15px', fontSize: '0.75rem', color: '#667781' }}>
+                          Cargando historial...
+                        </div>
+                      )}
+                      {realMessages.map((msg, idx) => (
+                        <MessageBubble 
+                          key={msg._id || idx} 
+                          msg={msg} 
+                          isLast={idx === realMessages.length - 1} 
                         />
-                        <button 
-                          className="secondary-btn" 
-                          disabled={!knowledgeUrl || isScraping}
-                          style={{ minWidth: '100px' }}
-                          onClick={async () => {
-                            if (!activeBrainId) return alert('Debes seleccionar un cerebro primero.');
-                            setIsScraping(true);
-                            try {
-                              const res = await fetch(`${BACKEND_URL}/api/knowledge/url`, {
-                                method: 'POST',
-                                headers: { 
-                                  'Content-Type': 'application/json',
-                                  'Authorization': `Bearer ${token}`
-                                },
-                                body: JSON.stringify({ url: knowledgeUrl, brainId: activeBrainId })
-                              });
-                              const data = await res.json();
-                              if (data.success) {
-                                alert('¡Contenido de la URL absorbido con éxito!');
-                                setKnowledgeUrl('');
-                              } else {
-                                alert('Error: ' + data.error);
-                              }
-                            } catch (e) {
-                              alert('Error de conexión al leer el link.');
-                            } finally {
-                              setIsScraping(false);
-                            }
-                          }}
-                        >
-                          {isScraping ? 'Leyendo...' : 'Alimentar'}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                      <button className="primary-btn" style={{ flex: 1 }} onClick={async () => {
-                        if (!activeBrainId) return alert('Selecciona un cerebro primero.');
-                        try {
-                          const res = await fetch(`${BACKEND_URL}/api/brains/${activeBrainId}/traits`, {
-                            method: 'PATCH',
-                            headers: { 
-                              'Content-Type': 'application/json',
-                              'Authorization': `Bearer ${token}`
-                            },
-                            body: JSON.stringify({ 
-                              personalityTraits: {
-                                isWhatsAppStyle: personalityWhatsApp,
-                                aggressivenessLevel: personalityAggressiveness,
-                                forbidLongLinks: personalityForbidLinks,
-                                useVoiceResponse: personalityUseVoice,
-                                isMirrorMode: mirrorMode
-                              }
-                            })
-                          });
-                          const data = await res.json();
-                          if (data.success) {
-                            alert('¡Configuración Neuronal cargada exitosamente!');
-                          } else {
-                            alert('Error: ' + data.error);
-                          }
-                        } catch (e) {
-                          alert('Error al conectar con el laboratorio.');
-                        }
-                      }}>
-                        Guardar Configuración Neuronal
-                      </button>
-
-                      <button className="secondary-btn" title="Descargar copia de seguridad del agente" onClick={async () => {
-                        if (!activeBrainId) return alert('Selecciona un cerebro primero.');
-                        try {
-                          const res = await fetch(`${BACKEND_URL}/api/brains/${activeBrainId}`, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                          });
-                          const brain = await res.json();
-                          const blob = new Blob([JSON.stringify(brain, null, 2)], { type: 'application/json' });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = `Darwin_Backup_${brain.name}_${new Date().toISOString().split('T')[0]}.json`;
-                          a.click();
-                        } catch (e) {
-                          alert('Error al generar la copia de seguridad.');
-                        }
-                      }}>
-                        📥 Backup
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === 'voice' && (
-                  <div className="voice-layout" style={{ padding: '40px', flex: 1, overflowY: 'auto' }}>
-                    <div style={{ marginBottom: '32px' }}>
-                      <h2 style={{ fontSize: '2rem', marginBottom: '8px' }}>Clonador de Perfil Vocal</h2>
-                      <p style={{ color: 'var(--text-secondary)' }}>Entrena a tu IA con muestras de tu propia voz para respuestas humanas.</p>
-                    </div>
-
-                    <div className="voice-grid">
-                      <div className="premium-card">
-                        <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <Mic size={20} color="var(--accent-blue)" /> Cargar Nueva Muestra
-                        </h3>
-                        <div className="upload-zone">
-                          <div style={{ fontSize: '2rem', marginBottom: '12px' }}>☁️</div>
-                          <p style={{ fontWeight: 600 }}>Cargar audio</p>
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>Arrastra o selecciona un archivo (Max 10MB)</p>
-                        </div>
-                      </div>
-
-                      <div className="premium-card">
-                        <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <ShieldAlert size={20} color="var(--accent-purple)" /> Estado de ElevenLabs
-                        </h3>
-                        <div style={{ padding: '16px', backgroundColor: 'var(--bg-primary)', borderRadius: '8px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                            <span>Sincronización</span>
-                            <span style={{ color: 'var(--wa-green)', fontWeight: 600 }}>Activa</span>
-                          </div>
-                          <div style={{ width: '100%', height: '4px', backgroundColor: '#eee', borderRadius: '2px' }}>
-                            <div style={{ width: '85%', height: '100%', backgroundColor: 'var(--accent-purple)', borderRadius: '2px' }}></div>
-                          </div>
-                          <p style={{ fontSize: '0.75rem', marginTop: '12px', color: 'var(--text-secondary)' }}>Voz actual: "Vendedor Elite - Optimizado"</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ marginTop: '40px' }}>
-                      <h3 style={{ marginBottom: '20px' }}>Muestras en la Base de Conocimiento</h3>
-                      {[1, 2].map((i) => (
-                        <div key={i} className="premium-card" style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                            <div style={{ width: '40px', height: '40px', backgroundColor: 'var(--bg-navy)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                              ▶️
-                            </div>
-                            <div>
-                              <p style={{ fontWeight: 600, margin: 0 }}>Muestra_Referencia_00{i}.mp3</p>
-                              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>Cargado el 15 Mar 2026</p>
-                            </div>
-                          </div>
-                          <button className="secondary-btn" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>Eliminar</button>
-                        </div>
                       ))}
+                      <div ref={messagesEndRef} style={{ height: '1px' }} />
                     </div>
+
+                    <ChatInput onSendMessage={handleSendMessage} />
+                  </>
+                ) : (
+                  <div className="no-chat-selected">
+                    <div className="logo-icon grow" style={{ fontSize: '4rem', opacity: 0.1, marginBottom: '20px' }}>💬</div>
+                    <p style={{ opacity: 0.5 }}>Selecciona un chat para ver la conversación neuronal</p>
                   </div>
                 )}
-
-                {activeTab === 'settings' && (
-                  <div className="settings-layout" style={{ padding: '40px', flex: 1, overflowY: 'auto' }}>
-                    <div style={{ marginBottom: '32px' }}>
-                      <h2 style={{ fontSize: '2rem', marginBottom: '8px' }}>Supervisión del Cerebro</h2>
-                      <p style={{ color: 'var(--text-secondary)' }}>Métricas de rendimiento y control de calidad de la IA en tiempo real.</p>
-                    </div>
-
-                    <div className="metric-grid">
-                      {/* Monitor de Aprendizaje Neuronal */}
-                      <div className="metric-card" style={{ gridColumn: 'span 2', background: 'linear-gradient(135deg, #1a1f3c 0%, #2a305c 100%)', padding: '24px', border: '1px solid var(--accent-purple)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                          <h3 style={{ color: 'white', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <BrainCircuit size={20} className="text-purple" style={{ color: 'var(--accent-purple)' }} /> 
-                            Progreso de Clonación Neuronal de Darwin
-                          </h3>
-                        </div>
-                        
-                        <div className="learning-progress-container">
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>Fase: {neuronalLogs.length > 5 ? 'Sincronización de Estilo' : 'Análisis Inicial'}</span>
-                            <span style={{ color: 'var(--wa-green)' }}>{Math.min(100, (neuronalLogs.length * 10))}%</span>
-                          </div>
-                          <div style={{ height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
-                            <div style={{ width: `${Math.min(100, (neuronalLogs.length * 10))}%`, height: '100%', background: 'var(--accent-purple)', transition: 'width 1s ease' }}></div>
-                          </div>
-                          <p style={{ marginTop: '12px', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
-                            Darwin ha procesado {neuronalLogs.length} eventos neuronales y analizado {chats.length} conversaciones reales.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="metric-card" style={{ gridColumn: 'span 2', background: 'rgba(59, 130, 246, 0.05)', border: '1px solid var(--accent-blue)', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <h4 style={{ margin: 0, color: 'var(--accent-blue)' }}>📊 Reporte "Corte de Caja Cognitivo"</h4>
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>Envía manualmente el resumen de aprendizajes al +52 1 55 4624 0128.</p>
-                        </div>
-                        <button 
-                          className="primary-btn" 
-                          style={{ padding: '8px 16px', fontSize: '0.75rem' }}
-                          onClick={async () => {
-                            try {
-                              const res = await fetch(`${BACKEND_URL}/api/whatsapp/report`, {
-                                method: 'POST',
-                                headers: { 
-                                  'Authorization': `Bearer ${token}`,
-                                  'Content-Type': 'application/json'
-                                }
-                              });
-                              const data = await res.json();
-                              if (data.success) alert('Reporte enviado con éxito.');
-                              else alert('Error: ' + data.error);
-                            } catch (e) { alert('Error de conexión.'); }
-                          }}
-                        >
-                          Enviar Reporte Ahora
-                        </button>
-                      </div>
-
-                      <div className="metric-card">
-                        <span className="metric-label">Sentiment Score</span>
-                        <span className="metric-value">94%</span>
-                      </div>
-                      <div className="metric-card">
-                        <span className="metric-label">Tasa de Cierre</span>
-                        <span className="metric-value">22.5%</span>
-                      </div>
-                      <div className="metric-card">
-                        <span className="metric-label">Intervenciones</span>
-                        <span className="metric-value">4</span>
-                      </div>
-                      <div className="metric-card" style={{ background: 'var(--accent-blue)' }}>
-                        <span className="metric-label">Estado</span>
-                        <span className="metric-value" style={{ fontSize: '1.2rem' }}>OPTIMIZADO</span>
-                      </div>
-                    </div>
-
-                    <div className="premium-card">
-                      <h3 style={{ marginBottom: '20px' }}>Log de Eventos Neuronales (En Vivo)</h3>
-                      <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', maxHeight: '400px', overflowY: 'auto' }}>
-                        {neuronalLogs.length === 0 ? (
-                          <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
-                            Esperando actividad neuronal...
-                          </div>
-                        ) : (
-                          neuronalLogs.map((log, idx) => (
-                            <div key={idx} style={{ 
-                              padding: '10px 0', 
-                              borderBottom: '1px solid var(--border-color)', 
-                              color: log.type === 'ai' ? 'var(--wa-green)' : 
-                                     log.type === 'brain' ? 'var(--accent-purple)' : 
-                                     log.type === 'system' ? 'var(--accent-blue)' : 'var(--text-secondary)'
-                            }}>
-                              [{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}] {log.message}
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </main>
-            </>
+              </div>
+            </div>
           )}
-        </>
-      )}
+
+          {activeTab === 'mirror' && (
+            <div style={{ padding: '24px' }}>
+              <div className="card" style={{ maxWidth: '800px' }}>
+                <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '15px', marginBottom: '20px' }}>
+                  🧠 Modo Espejo (Aprendizaje Pasivo J7282)
+                </h3>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                  En este modo, Darwin actúa como un observador silencioso. Su red neuronal analiza cada interacción entre tú y tus clientes sin intervenir. Este proceso es vital para capturar tu ADN de ventas: tono, gestos, manejo de objeciones y velocidad de respuesta.
+                </p>
+                <div style={{ background: 'rgba(0, 168, 132, 0.1)', padding: '20px', borderRadius: '12px', border: '1px solid var(--wa-green)', marginTop: '24px' }}>
+                  <div style={{ fontWeight: 600, color: 'var(--wa-green)', marginBottom: '8px' }}>Estado actual del Aprendizaje:</div>
+                  <div style={{ fontSize: '0.9rem' }}>Fase 1: Reconocimiento de Estructura de Catálogo.</div>
+                  <div style={{ width: '100%', height: '8px', background: 'var(--bg-primary)', borderRadius: '4px', marginTop: '12px', overflow: 'hidden' }}>
+                    <div style={{ width: '34%', height: '100%', background: 'var(--wa-green)' }}></div>
+                  </div>
+                  <div style={{ textAlign: 'right', fontSize: '0.7rem', marginTop: '4px', opacity: 0.7 }}>34.2% completado</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'lab' && (
+            <div style={{ padding: '24px' }}>
+               <div className="dashboard-grid">
+                  <div className="card">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                      <div className="logo-icon small">🧪</div>
+                      <h3 style={{ margin: 0 }}>Escaneo de ADN Histórico</h3>
+                    </div>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '24px' }}>
+                      Darwin puede viajar al pasado y leer tus últimos meses de historial para clonar tu personalidad instantáneamente.
+                    </p>
+                    <div style={{ marginBottom: '20px' }}>
+                      <label style={{ fontSize: '0.8rem', opacity: 0.7, display: 'block', marginBottom: '8px' }}>Profundidad del escaneo</label>
+                      <select className="input-field" value={historyMonths} onChange={e => setHistoryMonths(e.target.value)}>
+                        <option>1 Mes</option>
+                        <option>3 Meses</option>
+                        <option>6 Meses</option>
+                        <option>Todo</option>
+                      </select>
+                    </div>
+                    <button 
+                      className="primary-btn" 
+                      onClick={() => {
+                        fetch(`${BACKEND_URL}/api/whatsapp/scan-dna`, {
+                          method: 'POST',
+                          headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                          },
+                          body: JSON.stringify({ months: historyMonths })
+                        }).then(() => alert('Escaneo de ADN iniciado.'));
+                      }}
+                      style={{ width: '100%' }}
+                    >
+                      Iniciar Aprendizaje Elite J7282
+                    </button>
+                  </div>
+                  
+                  <div className="card">
+                    <h3 style={{ margin: '0 0 20px 0' }}>Sintonización Neuronal</h3>
+                    {[
+                      { l: 'Agresividad de Cierre', v: personalityAggressiveness, s: setPersonalityAggressiveness },
+                      { l: 'Estilo WhatsApp (Emoji/Slang)', v: personalityWhatsApp ? 10 : 0, s: (v) => setPersonalityWhatsApp(v > 5) }
+                    ].map(trait => (
+                      <div key={trait.l} style={{ marginBottom: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '8px' }}>
+                          <span>{trait.l}</span>
+                          <span>{trait.v}/10</span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="0" max="10" 
+                          value={trait.v} 
+                          onChange={e => trait.s(parseInt(e.target.value))}
+                          style={{ width: '100%', accentColor: 'var(--wa-green)' }} 
+                        />
+                      </div>
+                    ))}
+                  </div>
+               </div>
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div style={{ padding: '24px' }}>
+              <div className="card" style={{ background: '#000', color: '#0f0', fontFamily: 'monospace', padding: '20px', minHeight: '600px', fontSize: '0.8rem' }}>
+                <div style={{ borderBottom: '1px solid #060', paddingBottom: '10px', marginBottom: '20px', color: '#0a0' }}>
+                  DARWIN_OS J7282 > LOGS_NEURONALES > STREAMING_MODE
+                </div>
+                {neuronalLogs.map((log, i) => (
+                  <div key={log._id || i} style={{ marginBottom: '4px' }}>
+                    <span style={{ opacity: 0.5 }}>[{`new Date(log.timestamp).toLocaleTimeString()`}]</span> {log.message}
+                  </div>
+                ))}
+                <div className="pulsed" style={{ color: '#0f0', marginTop: '10px' }}>_</div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
