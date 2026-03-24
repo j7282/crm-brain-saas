@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Darwin · CRM Neuronal WhatsApp J7282</title>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#070a0f; --bg2:#0b0f17; --bg3:#0f1520; --bg4:#141c28;
+  --card:#0d1320; --border:#1a2236; --border2:#1e2a40;
+  --green:#00e87a; --green2:#00c265; --green-bg:rgba(0,232,122,.07);
+  --blue:#3d8bff; --blue-bg:rgba(61,139,255,.08);
+  --amber:#ffaa00; --amber-bg:rgba(255,170,0,.08);
+  --red:#ff4757; --text:#e2e8f4; --text2:#8494b0; --text3:#3d4f6a;
+  --sans:'Plus Jakarta Sans',sans-serif; --radius:12px;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+.flex{display:flex;}.col{flex-direction:column;}.items-center{align-items:center;}.justify-between{justify-content:space-between;}.gap12{gap:12px;}
+.hidden{display:none!important;}
+
+/* UI Components */
+.topbar{height:56px;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;z-index:10;}
+.sidebar{width:230px;background:var(--bg2);border-right:1px solid var(--border);padding:10px;display:flex;flex-direction:column;}
+.nav-item{padding:10px 14px;border-radius:8px;cursor:pointer;color:var(--text2);margin-bottom:2px;display:flex;align-items:center;gap:10px;transition:0.2s;}
+.nav-item:hover{background:var(--bg3);color:white;}
+.nav-item.active{background:var(--green-bg);color:var(--green);font-weight:600;}
+.badge{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;}
+.badge-amber{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(255,170,0,0.2);}
+.badge-green{background:var(--green-bg);color:var(--green);border:1px solid rgba(0,232,122,0.2);}
+
+/* Layout */
+.app-body{display:flex;flex:1;overflow:hidden;}
+.main-content{flex:1;padding:24px;overflow-y:auto;}
+.page{display:none;height:100%;}
+.page.active{display:block;}
+
+.metric-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
+.user-pill{display:flex;align-items:center;gap:8px;padding:5px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;}
+.user-avatar{width:26px;height:26px;border-radius:50%;background:var(--green);color:black;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;}
+
+/* Agent Layout */
+.agent-layout{display:grid;grid-template-columns:300px 1fr;height:100%;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.conv-list{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;}
+.chat-main{background:var(--bg);display:flex;flex-direction:column;}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text3);text-align:center;padding:40px;}
+
+/* Inputs */
+input{background:var(--bg2);border:1px solid var(--border);padding:12px;color:white;border-radius:8px;outline:none;width:100%;}
+button.btn-p{background:var(--green);color:black;border:none;padding:12px;border-radius:8px;font-weight:800;cursor:pointer;width:100%;}
+</style>
+</head>
+<body>
+
+<div id="screen-auth" style="position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div class="metric-card" style="width:100%;max-width:400px;text-align:center;">
+    <h2 style="margin-bottom:24px;">Darwin J7282 Security</h2>
+    
+    <!-- LOGIN FORM -->
+    <div id="form-login" class="flex col gap12">
+      <input id="l-email" placeholder="Email real"/>
+      <input id="l-pass" type="password" placeholder="Contraseña real"/>
+      <button onclick="doLogin()" class="btn-p">Acceder al Sistema</button>
+      <p style="font-size:12px;color:var(--text2);">¿No tienes cuenta? <a href="#" onclick="toggleAuth(true)" style="color:var(--green);">Regístrate aquí</a></p>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div id="form-reg" class="flex col gap12 hidden">
+      <input id="r-name" placeholder="Tu nombre real"/>
+      <input id="r-email" placeholder="Email"/>
+      <input id="r-pass" type="password" placeholder="Contraseña"/>
+      <button onclick="doRegister()" class="btn-p">Crear Cuenta J7282</button>
+      <p style="font-size:12px;color:var(--text2);">¿Ya tienes cuenta? <a href="#" onclick="toggleAuth(false)" style="color:var(--green);">Inicia sesión</a></p>
+    </div>
+
+    <p style="font-size:10px;color:var(--text3);margin-top:20px;">Modo demo desactivado por seguridad J7282</p>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="flex items-center gap12"><div style="width:8px;height:8px;border-radius:50%;background:var(--green);"></div><b>DAR<span style="color:var(--green);">WIN</span></b></div>
+  <div class="flex items-center gap12">
+    <div id="wa-badge" class="badge badge-amber">WhatsApp Desconectado</div>
+    <div class="user-pill"><div class="user-avatar" id="u-init">?</div><span id="u-name">Cargando...</span></div>
+    <button onclick="logout()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;">Desconectar</button>
+  </div>
+</div>
+
+<div class="app-body">
+  <aside class="sidebar">
+    <div class="nav-item active" onclick="nav('dash')">Dashboard</div>
+    <div class="nav-item" onclick="nav('agent')">Agente en Vivo</div>
+    <div class="nav-item" onclick="nav('wa')">Conectar WhatsApp</div>
+    <div style="margin-top:auto;padding:10px;font-size:10px;color:var(--text3);font-family:monospace;">Darwin J7282 v2.4.1</div>
+  </aside>
+
+  <main class="main-content">
+    <div id="page-dash" class="page active">
+      <h2 id="greet">Hola</h2>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px;">
+        <div class="metric-card"><div style="font-size:11px;color:var(--text3);">CONVERSACIONES</div><div style="font-size:28px;font-weight:800;" id="m-convs">0</div></div>
+        <div class="metric-card"><div style="font-size:11px;color:var(--text3);">WA STATUS</div><div id="m-status" style="color:var(--amber);">DESCONECTADO</div></div>
+        <div class="metric-card"><div style="font-size:11px;color:var(--text3);">RAILWAY</div><div style="color:var(--green);">ONLINE</div></div>
+      </div>
+    </div>
+
+    <div id="page-agent" class="page">
+      <div class="agent-layout">
+        <div class="conv-list" id="chats-list">
+          <div style="padding:40px 20px;text-align:center;color:var(--text3);font-size:12px;">No hay chats activos</div>
+        </div>
+        <div class="chat-main">
+          <div class="empty-state">
+            <div style="font-size:32px;margin-bottom:12px;">💬</div>
+            <div>Selecciona una conversación real para empezar</div>
+            <div style="font-size:11px;margin-top:8px;">Los datos de prueba han sido eliminados por J7282</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const BACKEND_URL = "https://zestful-alignment-production-c71f.up.railway.app";
+let socket = null;
+
+function toggleAuth(showReg) {
+  document.getElementById('form-login').classList.toggle('hidden', showReg);
+  document.getElementById('form-reg').classList.toggle('hidden', !showReg);
+}
+
+async function doLogin() {
+  const email = document.getElementById('l-email').value;
+  const password = document.getElementById('l-pass').value;
+  try {
+    const res = await fetch(BACKEND_URL+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+    const data = await res.json();
+    if(data.token) { localStorage.setItem('darwin_token',data.token); init(data.user); }
+    else alert(data.error||'Fallo en autenticación');
+  } catch(e) { alert('Error de conexión con el servidor J7282'); }
+}
+
+async function doRegister() {
+  const name = document.getElementById('r-name').value;
+  const email = document.getElementById('r-email').value;
+  const password = document.getElementById('r-pass').value;
+  if(!name || !email || !password) { alert('Completa todos los campos J7282'); return; }
+  try {
+    const res = await fetch(BACKEND_URL+'/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,password})});
+    const data = await res.json();
+    if(data.token) { localStorage.setItem('darwin_token',data.token); init(data.user); }
+    else alert(data.error||'Error al crear cuenta');
+  } catch(e) { alert('Error de conexión con el servidor J7282'); }
+}
+
+function init(user) {
+  document.getElementById('screen-auth').style.display='none';
+  document.getElementById('u-name').textContent = user.name;
+  document.getElementById('u-init').textContent = user.name.substring(0,1).toUpperCase();
+  document.getElementById('greet').textContent = `Hola ${user.name.split(' ')[0]} 👋`;
+  
+  if(!socket) {
+    socket = io(BACKEND_URL);
+    socket.on('connect', () => socket.emit('join', user.id));
+    socket.on('wa-status', d=>update(d.connected, d.phone));
+  }
+  fetchWA();
+}
+
+async function fetchWA() {
+  const token = localStorage.getItem('darwin_token');
+  if(!token) return;
+  const res = await fetch(BACKEND_URL+'/api/whatsapp/status',{headers:{'Authorization':'Bearer '+token}});
+  const data = await res.json();
+  update(data.connected, data.phone);
+}
+
+function update(conn, phone) {
+  const b = document.getElementById('wa-badge');
+  const s = document.getElementById('m-status');
+  if(conn) {
+    b.className='badge badge-green'; b.textContent='WA: Conectado ('+phone+')';
+    s.textContent='CONECTADO'; s.style.color='var(--green)';
+  } else {
+    b.className='badge badge-amber'; b.textContent='WhatsApp Desconectado';
+    s.textContent='DESCONECTADO'; s.style.color='var(--amber)';
+  }
+}
+
+function nav(p) {
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(x=>{
+    x.classList.toggle('active', x.getAttribute('onclick').includes("'"+p+"'"));
+  });
+}
+
+function logout(){ localStorage.removeItem('darwin_token'); location.reload(); }
+
+const t = localStorage.getItem('darwin_token');
+if(t) {
+  fetch(BACKEND_URL+'/api/auth/me',{headers:{'Authorization':'Bearer '+t}}).then(r=>r.json()).then(d=>{if(d.user)init(d.user);});
+}
+</script>
+</body>
+</html>

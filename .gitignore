@@ -1,0 +1,14 @@
+.env
+.env.local
+.env.production
+data/
+**/node_modules/
+node_modules/
+auth_info_baileys/
+wa_auth*/
+*.log
+_backup_index.html.old
+uploads/
+dist
+.DS_Store
+auth_info_baileys/
