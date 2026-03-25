@@ -75,18 +75,6 @@ const BrainSchema = new mongoose.Schema({
   useQuickReplies: { type: Boolean, default: true },
   extraInstruction: { type: String, default: '' },
   msgsProcessed: { type: Number, default: 0 },
-  // J7282: Campos nuevos agregados por auditoría de Claude
-  knowledgeBase: [{
-    source: { type: String },
-    content: { type: String },
-    timestamp: { type: Date, default: Date.now }
-  }],
-  trainingData: [{
-    query: { type: String },
-    aiResponse: { type: String },
-    correction: { type: String },
-    timestamp: { type: Date, default: Date.now }
-  }],
   updatedAt: { type: Date, default: Date.now }
 });
 

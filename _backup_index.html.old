@@ -475,7 +475,7 @@ input[type=range]{accent-color:var(--green);height:4px;padding:0;border:none;bac
         </div>
       </div>
       <div class="sidebar-bottom">
-        <div style="font-size:10px;color:var(--text3);font-family:var(--mono);">v2.4.1 · SaaS Edition</div>
+        <div style="font-size:10px;color:var(--text3);font-family:var(--mono);">DARWIN V2.0 NEURONAL · J7282</div>
       </div>
     </aside>
 
@@ -988,13 +988,7 @@ let statMsgs = 0;
 const API_URL = "https://api.anthropic.com/v1/messages";
 const BACKEND_URL = "https://zestful-alignment-production-c71f.up.railway.app";
 
-const convData = [
-  {id:1,name:'Pedro L.',phone:'+52 998 123 4567',avatar:'PL',color:'green',stage:'close',preview:'Listo para pagar 🔥',time:'4 min',msgs:[{role:'client',text:'Hola ya tomé la decisión, quiero el plan pro'},{role:'darwin',text:'Pedro! Qué buena noticia 🙌 Ya te mando el link de pago ahora mismo. En menos de 5 minutos tienes todo listo',pattern:'Urgencia de cierre · 98%'}]},
-  {id:2,name:'Ana R.',phone:'+52 998 234 5678',avatar:'AR',color:'blue',stage:'contactado',preview:'Me interesa pero el precio...',time:'8 min',msgs:[{role:'client',text:'Hola vi tu anuncio, me interesa el curso'},{role:'darwin',text:'Ana! Bienvenida 👋 Cuéntame, ¿cuál es tu situación actual con las ventas? ¿ya tienes clientes o estás empezando?',pattern:'Pregunta de calificación · 94%'}]},
-  {id:3,name:'Miguel T.',phone:'+52 998 345 6789',avatar:'MT',color:'purple',stage:'contactado',preview:'¿Tienen garantía?',time:'31 min',msgs:[]},
-  {id:4,name:'Carlos F.',phone:'+52 998 456 7890',avatar:'CF',color:'amber',stage:'propuesta',preview:'Lo estoy revisando',time:'1h',msgs:[]},
-  {id:5,name:'Sofía V.',phone:'+52 998 567 8901',avatar:'SV',color:'red',stage:'propuesta',preview:'No tengo mucho tiempo',time:'3h',msgs:[]},
-];
+const convData = [];
 
 // ── AUTH ──
 function switchAuth(mode){
@@ -1436,6 +1430,41 @@ function updateWAUI(connected, phone) {
     if(sideWa) sideWa.textContent = 'Desconectado';
   }
 }
+
+// ── PERSISTENCE ──
+async function checkPersistence() {
+  const token = localStorage.getItem('darwin_token');
+  if (!token) return;
+  
+  try {
+    const res = await fetch(BACKEND_URL + '/api/auth/me', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    if (data.user) {
+      loginUser(data.user);
+      fetchWAStatus();
+    }
+  } catch (e) { console.error('Error persistence:', e); }
+}
+
+async function fetchWAStatus() {
+  const token = localStorage.getItem('darwin_token');
+  if (!token) return;
+  try {
+    const res = await fetch(BACKEND_URL + '/api/whatsapp/status', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    if (data.connected) {
+      waConnected = true;
+      updateWAUI(true, data.phone);
+    }
+  } catch (e) { console.error('Error WA status:', e); }
+}
+
+window.addEventListener('scroll', () => {}); // Placeholder
+checkPersistence();
 </script>
 </body>
 </html>

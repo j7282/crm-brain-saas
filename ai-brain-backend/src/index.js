@@ -1,6 +1,5 @@
 require('dotenv').config();
 const express    = require('express');
-const path       = require('path');
 const http       = require('http');
 const { Server } = require('socket.io');
 const cors       = require('cors');
@@ -27,32 +26,8 @@ const gemini = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// J7282: Servir frontend React desde el backend
-app.use(express.static(path.join(__dirname, 'public')));
-
 // Multi-usuario: un socket de WA por usuario
 const waSessions = new Map();
-
-// J7282: Socket.io Connection Handler - Arreglado por auditoría de Claude
-io.on('connection', (socket) => {
-  console.log('[Socket.io] Cliente conectado:', socket.id);
-
-  // Escuchar cuando un usuario se une a su room
-  socket.on('join', (userId) => {
-    socket.join(`u_${userId}`);
-    console.log(`[Socket.io] Usuario ${userId} unido a room u_${userId}`);
-
-    // Enviar estado actual de WhatsApp
-    const sock = waSessions.get(userId);
-    if (sock) {
-      io.to(`u_${userId}`).emit('wa-status', { connected: true });
-    }
-  });
-
-  socket.on('disconnect', () => {
-    console.log('[Socket.io] Cliente desconectado:', socket.id);
-  });
-});
 // Anti-spam: contador de mensajes por usuario+prospecto
 const msgCountMap = new Map();
 
@@ -207,16 +182,8 @@ async function connectWhatsApp(userId) {
         await db.User.findByIdAndUpdate(userId, { waConnected:false });
         io.to(`u_${userId}`).emit('wa-status',{connected:false});
         const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
-        // J7282: Límite de reintentos por auditoría de Claude
-        let retryCount = waSessions.get(userId + '_retry') || 0;
-        if (code !== DisconnectReason.loggedOut && retryCount < 10) {
-          waSessions.set(userId + '_retry', retryCount + 1);
-          setTimeout(() => connectWhatsApp(userId), 5000 * (retryCount + 1));
-        } else {
-          console.error(`WhatsApp J7282: Desconexión permanente o límite alcanzado (${retryCount}) Usuario: ${userId}`);
-          waSessions.delete(userId);
-          waSessions.delete(userId + '_retry');
-        }
+        if (code !== DisconnectReason.loggedOut) setTimeout(()=>connectWhatsApp(userId),5000);
+        else waSessions.delete(userId);
       }
       if (connection === 'open') {
         const phone = sock.user?.id?.split(':')[0]||'';
@@ -628,251 +595,6 @@ app.post('/api/admin/backups', authMiddleware, adminOnly, async (req,res) => {
   } catch(e) { res.status(500).json({error:e.message}); }
 });
 
-// ═══════════════════════════════════════════════════════════
-// J7282: ENDPOINTS NUEVOS - Agregados por auditoría de Claude
-// ═══════════════════════════════════════════════════════════
-
-// Endpoint plural de cerebros (el frontend lo necesita)
-app.get('/api/brains', authMiddleware, async (req, res) => {
-  try {
-    const brain = await db.Brain.findOne({ userId: req.user.userId });
-    // Devolver como array para compatibilidad con frontend
-    res.json(brain ? [brain] : []);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Endpoint de logs neuronales para el dashboard
-app.get('/api/neuronal-logs', authMiddleware, async (req, res) => {
-  try {
-    const logs = await db.ActivityLog.find({ userId: req.user.userId })
-      .sort({ timestamp: -1 })
-      .limit(50);
-    res.json(logs);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Endpoint de chats para el inbox (conversión de conversations a chats)
-app.get('/api/whatsapp/chats', authMiddleware, async (req, res) => {
-  try {
-    const { limit = 40, skip = 0 } = req.query;
-
-    const conversations = await db.Conversation.find({ userId: req.user.userId })
-      .sort({ lastMessage: -1 })
-      .skip(parseInt(skip))
-      .limit(parseInt(limit));
-
-    const total = await db.Conversation.countDocuments({ userId: req.user.userId });
-
-    // Convertir formato Conversation a formato Chat para el frontend
-    const chats = conversations.map(c => {
-      const lastMsg = c.messages && c.messages.length > 0
-        ? c.messages[c.messages.length - 1]
-        : null;
-
-      return {
-        jid: c.phone + '@s.whatsapp.net',
-        pushName: c.name || c.phone,
-        lastMessage: lastMsg?.text || '',
-        lastTimestamp: c.lastMessage || c.updatedAt,
-        sentiment: c.score > 70 ? 'verde' : (c.score < 30 ? 'rojo' : 'amarillo'),
-        labels: c.tags || [],
-        role: lastMsg?.role === 'darwin' ? 'ai' : 'user',
-        stage: c.stage,
-        score: c.score
-      };
-    });
-
-    res.json({ chats, total });
-  } catch (err) {
-    console.error('[API Error] /api/whatsapp/chats:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Endpoint para forzar sincronización de WhatsApp
-app.post('/api/whatsapp/sync-previews', authMiddleware, async (req, res) => {
-  try {
-    const sock = waSessions.get(req.user.userId);
-    if (!sock) {
-      return res.json({ success: false, error: 'WhatsApp no conectado' });
-    }
-
-    // Emitir evento de sincronización al frontend
-    io.to(`u_${req.user.userId}`).emit('sync-started', { message: 'Sincronización iniciada' });
-
-    res.json({ success: true, message: 'Sincronización iniciada' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Endpoint para obtener mensajes de una conversación (formato alternativo)
-app.get('/api/conversations/:jid', authMiddleware, async (req, res) => {
-  try {
-    const { limit = 40, before } = req.query;
-    const phone = req.params.jid.split('@')[0];
-
-    const conv = await db.Conversation.findOne({
-      phone,
-      userId: req.user.userId
-    });
-
-    if (!conv) {
-      return res.json([]);
-    }
-
-    let messages = conv.messages || [];
-
-    // Filtrar por fecha si se proporciona 'before'
-    if (before) {
-      const beforeDate = new Date(parseInt(before));
-      messages = messages.filter(m => m.timestamp < beforeDate);
-    }
-
-    // Ordenar y limitar
-    messages = messages
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, parseInt(limit))
-      .reverse();
-
-    res.json(messages);
-  } catch (err) {
-    console.error('[API Error] /api/conversations/:jid:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Endpoint para actualizar traits de personalidad del cerebro
-app.post('/api/brains/:id/traits', authMiddleware, async (req, res) => {
-  try {
-    const { personalityTraits } = req.body;
-
-    const brain = await db.Brain.findOneAndUpdate(
-      { userId: req.user.userId },
-      {
-        $set: {
-          aggressiveness: personalityTraits?.aggressivenessLevel || 7,
-          formality: personalityTraits?.formality || 4,
-          useVoice: personalityTraits?.useVoice || false,
-          extraInstruction: personalityTraits?.extraInstruction || '',
-          mode: personalityTraits?.isMirrorMode ? 'mirror' : 'active',
-          updatedAt: new Date()
-        }
-      },
-      { upsert: true, new: true }
-    );
-
-    res.json({ success: true, brain });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Endpoint para entrenar el cerebro con correcciones
-app.post('/api/brains/:id/train', authMiddleware, async (req, res) => {
-  try {
-    const { original, corrected, context } = req.body;
-
-    // Guardar la corrección en el historial de entrenamiento
-    await db.Brain.findOneAndUpdate(
-      { userId: req.user.userId },
-      {
-        $push: {
-          trainingData: {
-            query: context,
-            aiResponse: original,
-            correction: corrected,
-            timestamp: new Date()
-          }
-        },
-        $set: { updatedAt: new Date() }
-      },
-      { upsert: true }
-    );
-
-    res.json({ success: true, message: 'Entrenamiento guardado' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Endpoint para agregar conocimiento desde URL
-app.post('/api/knowledge/url', authMiddleware, async (req, res) => {
-  try {
-    const { url } = req.body;
-
-    if (!url) {
-      return res.status(400).json({ error: 'URL requerida' });
-    }
-
-    // Scrape básico del contenido
-    const response = await axios.get(url, { timeout: 10000 });
-    const content = response.data.substring(0, 5000); // Limitar a 5000 caracteres
-
-    await db.Brain.findOneAndUpdate(
-      { userId: req.user.userId },
-      {
-        $push: {
-          knowledgeBase: {
-            source: url,
-            content: content,
-            timestamp: new Date()
-          }
-        },
-        $set: { updatedAt: new Date() }
-      },
-      { upsert: true }
-    );
-
-    res.json({ success: true, message: 'Conocimiento agregado desde URL' });
-  } catch (err) {
-    console.error('[API Error] /api/knowledge/url:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Endpoint de reporte de WhatsApp (estadísticas)
-app.get('/api/whatsapp/report', authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user.userId;
-
-    const [convs, brain, user] = await Promise.all([
-      db.Conversation.find({ userId }),
-      db.Brain.findOne({ userId }),
-      db.User.findById(userId)
-    ]);
-
-    const totalMessages = convs.reduce((acc, c) => acc + (c.messages?.length || 0), 0);
-    const aiMessages = convs.reduce((acc, c) =>
-      acc + (c.messages?.filter(m => m.role === 'darwin').length || 0), 0);
-
-    res.json({
-      success: true,
-      report: {
-        totalConversations: convs.length,
-        totalMessages,
-        aiMessages,
-        humanMessages: totalMessages - aiMessages,
-        dnaScore: brain?.dnaScore || 0,
-        waConnected: user?.waConnected || false,
-        stages: {
-          nuevo: convs.filter(c => c.stage === 'nuevo').length,
-          contactado: convs.filter(c => c.stage === 'contactado').length,
-          propuesta: convs.filter(c => c.stage === 'propuesta').length,
-          cierre: convs.filter(c => c.stage === 'cierre').length,
-          perdido: convs.filter(c => c.stage === 'perdido').length
-        }
-      }
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // ── CRON JOBS ──
 cron.schedule('* * * * *', async () => {
   try {
@@ -904,17 +626,10 @@ async function reconnectSessions() {
   users.forEach((u,i) => setTimeout(()=>connectWhatsApp(u._id.toString()),2000*i));
 }
 
-// J7282: SPA catch-all - cualquier ruta que no sea /api/* sirve el React app
-app.get('*', (req, res) => {
-  if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-  }
-});
-
 const PORT = process.env.PORT || 3001;
 db.connect().then(() => {
   server.listen(PORT, async () => {
-    console.log('Darwin CRM Backend + Frontend en puerto '+PORT);
+    console.log('Darwin CRM Backend en puerto '+PORT);
     await reconnectSessions();
   });
 });

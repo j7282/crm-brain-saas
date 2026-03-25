@@ -1,0 +1,202 @@
+{"$$indexCreated":{"fieldName":"msgId","unique":true,"sparse":false}}
+{"$$indexCreated":{"fieldName":"msgId","unique":true}}
+{"msgId":"id_unique_0","jid":"521550@s.whatsapp.net","text":"📷 Imagen","timestamp":{"$$date":1773781835919},"_id":"nWMIZyfYhP7AxRcf"}
+{"msgId":"id_unique_1","jid":"521551@s.whatsapp.net","text":"Mensaje 1","timestamp":{"$$date":1773781835936},"_id":"lbLhsFeq0Rf9xtMa"}
+{"msgId":"id_unique_2","jid":"521552@s.whatsapp.net","text":"Mensaje 2","timestamp":{"$$date":1773781835937},"_id":"EGvE1zPbHRRQXpmO"}
+{"msgId":"id_unique_3","jid":"521553@s.whatsapp.net","text":"Mensaje 3","timestamp":{"$$date":1773781835938},"_id":"thYN7qnu275bhkAZ"}
+{"msgId":"id_unique_4","jid":"521554@s.whatsapp.net","text":"Mensaje 4","timestamp":{"$$date":1773781835939},"_id":"NFSX0uW6KmOeF82t"}
+{"msgId":"id_unique_5","jid":"521555@s.whatsapp.net","text":"Mensaje 5","timestamp":{"$$date":1773781835940},"_id":"dNdRjllfytdrRtpA"}
+{"msgId":"id_unique_6","jid":"521556@s.whatsapp.net","text":"Mensaje 6","timestamp":{"$$date":1773781835940},"_id":"jIz9nQdzmB5tCkE8"}
+{"msgId":"id_unique_7","jid":"521557@s.whatsapp.net","text":"Mensaje 7","timestamp":{"$$date":1773781835941},"_id":"YNcAXzeeTKcYnh0M"}
+{"msgId":"id_unique_8","jid":"521558@s.whatsapp.net","text":"Mensaje 8","timestamp":{"$$date":1773781835941},"_id":"ih7AQIvMdZTA5vVA"}
+{"msgId":"id_unique_9","jid":"521559@s.whatsapp.net","text":"Mensaje 9","timestamp":{"$$date":1773781835942},"_id":"mqNh5Ni0c2GOjT0N"}
+{"msgId":"id_unique_10","jid":"5215510@s.whatsapp.net","text":"📷 Imagen","timestamp":{"$$date":1773781835942},"_id":"6n6gDVrgK847F4B8"}
+{"msgId":"id_unique_11","jid":"5215511@s.whatsapp.net","text":"Mensaje 11","timestamp":{"$$date":1773781835943},"_id":"3WZf1UuPU5IgVoYM"}
+{"msgId":"id_unique_12","jid":"5215512@s.whatsapp.net","text":"Mensaje 12","timestamp":{"$$date":1773781835943},"_id":"6mOmWQxALJeMqBx0"}
+{"msgId":"id_unique_13","jid":"5215513@s.whatsapp.net","text":"Mensaje 13","timestamp":{"$$date":1773781835944},"_id":"dLY1xUltcBdf85Vt"}
+{"msgId":"id_unique_14","jid":"5215514@s.whatsapp.net","text":"Mensaje 14","timestamp":{"$$date":1773781835944},"_id":"6xLCGVz5IRYtxSiB"}
+{"msgId":"id_unique_15","jid":"5215515@s.whatsapp.net","text":"Mensaje 15","timestamp":{"$$date":1773781835944},"_id":"gd1nv8cP8xSNm92u"}
+{"msgId":"id_unique_16","jid":"5215516@s.whatsapp.net","text":"Mensaje 16","timestamp":{"$$date":1773781835945},"_id":"ukRBR9qQy2r9uX3N"}
+{"msgId":"id_unique_17","jid":"5215517@s.whatsapp.net","text":"Mensaje 17","timestamp":{"$$date":1773781835946},"_id":"RQ7g5Kz4RLf6t66B"}
+{"msgId":"id_unique_18","jid":"5215518@s.whatsapp.net","text":"Mensaje 18","timestamp":{"$$date":1773781835946},"_id":"fmtpjk7kV0WHaI5O"}
+{"msgId":"id_unique_19","jid":"5215519@s.whatsapp.net","text":"Mensaje 19","timestamp":{"$$date":1773781835947},"_id":"iXCqEw3wZera36ix"}
+{"msgId":"id_unique_20","jid":"5215520@s.whatsapp.net","text":"📷 Imagen","timestamp":{"$$date":1773781835947},"_id":"AeBgI3sFEgeCEqK9"}
+{"msgId":"id_unique_21","jid":"5215521@s.whatsapp.net","text":"Mensaje 21","timestamp":{"$$date":1773781835948},"_id":"e8GKtY3OYZ2apQOj"}
+{"msgId":"id_unique_22","jid":"5215522@s.whatsapp.net","text":"Mensaje 22","timestamp":{"$$date":1773781835948},"_id":"m3R6dZmm1J8BhF8g"}
+{"msgId":"id_unique_23","jid":"5215523@s.whatsapp.net","text":"Mensaje 23","timestamp":{"$$date":1773781835949},"_id":"BcKQiWAI6T1071yB"}
+{"msgId":"id_unique_24","jid":"5215524@s.whatsapp.net","text":"Mensaje 24","timestamp":{"$$date":1773781835950},"_id":"jDpwWXNz08U4AtbG"}
+{"msgId":"id_unique_25","jid":"5215525@s.whatsapp.net","text":"Mensaje 25","timestamp":{"$$date":1773781835950},"_id":"mVRpX8m4Jw0NomOk"}
+{"msgId":"id_unique_26","jid":"5215526@s.whatsapp.net","text":"Mensaje 26","timestamp":{"$$date":1773781835950},"_id":"ny3MXrJSfsvubKG8"}
+{"msgId":"id_unique_27","jid":"5215527@s.whatsapp.net","text":"Mensaje 27","timestamp":{"$$date":1773781835951},"_id":"S8p95fmGHZZWvk6B"}
+{"msgId":"id_unique_28","jid":"5215528@s.whatsapp.net","text":"Mensaje 28","timestamp":{"$$date":1773781835951},"_id":"5iJOVdjXsJgGz1FN"}
+{"msgId":"id_unique_29","jid":"5215529@s.whatsapp.net","text":"Mensaje 29","timestamp":{"$$date":1773781835954},"_id":"oMp8DSRyukBfHuBe"}
+{"msgId":"id_unique_30","jid":"5215530@s.whatsapp.net","text":"📷 Imagen","timestamp":{"$$date":1773781835955},"_id":"dUZmD6l4y63Qw2gg"}
+{"msgId":"id_unique_31","jid":"5215531@s.whatsapp.net","text":"Mensaje 31","timestamp":{"$$date":1773781835955},"_id":"zkgw4svWd8WPKaqF"}
+{"msgId":"id_unique_32","jid":"5215532@s.whatsapp.net","text":"Mensaje 32","timestamp":{"$$date":1773781835956},"_id":"CDo3qpGfU6WZgha4"}
+{"msgId":"id_unique_33","jid":"5215533@s.whatsapp.net","text":"Mensaje 33","timestamp":{"$$date":1773781835956},"_id":"SabCR0j82IwQs1Qy"}
+{"msgId":"id_unique_34","jid":"5215534@s.whatsapp.net","text":"Mensaje 34","timestamp":{"$$date":1773781835960},"_id":"6qh8o2537V1ocf7h"}
+{"msgId":"id_unique_35","jid":"5215535@s.whatsapp.net","text":"Mensaje 35","timestamp":{"$$date":1773781835960},"_id":"HabKJgcfCUgUHL4N"}
+{"msgId":"id_unique_36","jid":"5215536@s.whatsapp.net","text":"Mensaje 36","timestamp":{"$$date":1773781835961},"_id":"t2MoB7GDjBSkXu05"}
+{"msgId":"id_unique_37","jid":"5215537@s.whatsapp.net","text":"Mensaje 37","timestamp":{"$$date":1773781835962},"_id":"lJI6UBvpmgRWRMIU"}
+{"msgId":"id_unique_38","jid":"5215538@s.whatsapp.net","text":"Mensaje 38","timestamp":{"$$date":1773781835962},"_id":"W5FcAafo0XPvyKCV"}
+{"msgId":"id_unique_39","jid":"5215539@s.whatsapp.net","text":"Mensaje 39","timestamp":{"$$date":1773781835963},"_id":"90qg0TlSIIKzKw2k"}
+{"msgId":"id_unique_40","jid":"5215540@s.whatsapp.net","text":"📷 Imagen","timestamp":{"$$date":1773781835964},"_id":"521afu4GEpljJ5Cn"}
+{"msgId":"id_unique_41","jid":"5215541@s.whatsapp.net","text":"Mensaje 41","timestamp":{"$$date":1773781835964},"_id":"YEfGPJg0n3Ca5kZi"}
+{"msgId":"id_unique_42","jid":"5215542@s.whatsapp.net","text":"Mensaje 42","timestamp":{"$$date":1773781835965},"_id":"oSHL2UbffAkr4IwA"}
+{"msgId":"id_unique_43","jid":"5215543@s.whatsapp.net","text":"Mensaje 43","timestamp":{"$$date":1773781835965},"_id":"88iQVAZ0R7PMe58R"}
+{"msgId":"id_unique_44","jid":"5215544@s.whatsapp.net","text":"Mensaje 44","timestamp":{"$$date":1773781835966},"_id":"Qa2XDvvwg79E0DUI"}
+{"msgId":"id_unique_45","jid":"5215545@s.whatsapp.net","text":"Mensaje 45","timestamp":{"$$date":1773781835966},"_id":"siesPBxB6o6UqJWF"}
+{"msgId":"id_unique_46","jid":"5215546@s.whatsapp.net","text":"Mensaje 46","timestamp":{"$$date":1773781835967},"_id":"odFmZdER8ZYTboIk"}
+{"msgId":"id_unique_47","jid":"5215547@s.whatsapp.net","text":"Mensaje 47","timestamp":{"$$date":1773781835967},"_id":"TYCy519uopMsqC2h"}
+{"msgId":"id_unique_48","jid":"5215548@s.whatsapp.net","text":"Mensaje 48","timestamp":{"$$date":1773781835967},"_id":"rUUi6uTAVhecpbMI"}
+{"msgId":"id_unique_49","jid":"5215549@s.whatsapp.net","text":"Mensaje 49","timestamp":{"$$date":1773781835968},"_id":"oJEVXfIs5qBoZpny"}
+{"msgId":"id_unique_50","jid":"5215550@s.whatsapp.net","text":"📷 Imagen","timestamp":{"$$date":1773781835968},"_id":"2KyrySulv7fB9cbL"}
+{"msgId":"id_unique_51","jid":"5215551@s.whatsapp.net","text":"Mensaje 51","timestamp":{"$$date":1773781835969},"_id":"tISq23mdoaOz9O9w"}
+{"msgId":"id_unique_52","jid":"5215552@s.whatsapp.net","text":"Mensaje 52","timestamp":{"$$date":1773781835969},"_id":"ySqHpjgQw0efgSoU"}
+{"msgId":"id_unique_53","jid":"5215553@s.whatsapp.net","text":"Mensaje 53","timestamp":{"$$date":1773781835970},"_id":"bGdxHAuFLlV5nsXm"}
+{"msgId":"id_unique_54","jid":"5215554@s.whatsapp.net","text":"Mensaje 54","timestamp":{"$$date":1773781835970},"_id":"YcLJm0PFOZFDDDW9"}
+{"msgId":"id_unique_55","jid":"5215555@s.whatsapp.net","text":"Mensaje 55","timestamp":{"$$date":1773781835970},"_id":"81BJIve0nL3eZX0g"}
+{"msgId":"id_unique_56","jid":"5215556@s.whatsapp.net","text":"Mensaje 56","timestamp":{"$$date":1773781835971},"_id":"Io0xj7SCJBBTOezr"}
+{"msgId":"id_unique_57","jid":"5215557@s.whatsapp.net","text":"Mensaje 57","timestamp":{"$$date":1773781835971},"_id":"xyaHs5KUmR0sHWCQ"}
+{"msgId":"id_unique_58","jid":"5215558@s.whatsapp.net","text":"Mensaje 58","timestamp":{"$$date":1773781835972},"_id":"6sQZaBDTY0csXdRK"}
+{"msgId":"id_unique_59","jid":"5215559@s.whatsapp.net","text":"Mensaje 59","timestamp":{"$$date":1773781835973},"_id":"y1X6ECWSVYd2bero"}
+{"msgId":"id_unique_60","jid":"5215560@s.whatsapp.net","text":"📷 Imagen","timestamp":{"$$date":1773781835973},"_id":"CYxgsdF94IUo0JfA"}
+{"msgId":"id_unique_61","jid":"5215561@s.whatsapp.net","text":"Mensaje 61","timestamp":{"$$date":1773781835974},"_id":"a1Sq5tJapUeOBvDW"}
+{"msgId":"id_unique_62","jid":"5215562@s.whatsapp.net","text":"Mensaje 62","timestamp":{"$$date":1773781835974},"_id":"11hZSZgXO035f75o"}
+{"msgId":"id_unique_63","jid":"5215563@s.whatsapp.net","text":"Mensaje 63","timestamp":{"$$date":1773781835974},"_id":"ucbf0ejXOLwFXDy8"}
+{"msgId":"id_unique_64","jid":"5215564@s.whatsapp.net","text":"Mensaje 64","timestamp":{"$$date":1773781835975},"_id":"pGsvKVsQHLsiBOGq"}
+{"msgId":"id_unique_65","jid":"5215565@s.whatsapp.net","text":"Mensaje 65","timestamp":{"$$date":1773781835975},"_id":"kmOG2zU0DwXvWFhE"}
+{"msgId":"id_unique_66","jid":"5215566@s.whatsapp.net","text":"Mensaje 66","timestamp":{"$$date":1773781835976},"_id":"kwlXSKrqFDzxTUuC"}
+{"msgId":"id_unique_67","jid":"5215567@s.whatsapp.net","text":"Mensaje 67","timestamp":{"$$date":1773781835976},"_id":"xjdx269mWsTgPEgV"}
+{"msgId":"id_unique_68","jid":"5215568@s.whatsapp.net","text":"Mensaje 68","timestamp":{"$$date":1773781835976},"_id":"1QD8SC0SPbGIyH13"}
+{"msgId":"id_unique_69","jid":"5215569@s.whatsapp.net","text":"Mensaje 69","timestamp":{"$$date":1773781835977},"_id":"sfEJmSfHDFunkcYQ"}
+{"msgId":"id_unique_70","jid":"5215570@s.whatsapp.net","text":"📷 Imagen","timestamp":{"$$date":1773781835977},"_id":"kcHswRBivlDPdSrn"}
+{"msgId":"id_unique_71","jid":"5215571@s.whatsapp.net","text":"Mensaje 71","timestamp":{"$$date":1773781835978},"_id":"6zG16CMFKI1uaga4"}
+{"msgId":"id_unique_72","jid":"5215572@s.whatsapp.net","text":"Mensaje 72","timestamp":{"$$date":1773781835978},"_id":"h7JKFVT6GGQYiOXv"}
+{"msgId":"id_unique_73","jid":"5215573@s.whatsapp.net","text":"Mensaje 73","timestamp":{"$$date":1773781835979},"_id":"F97AvOy4Hb2Qjyyk"}
+{"msgId":"id_unique_74","jid":"5215574@s.whatsapp.net","text":"Mensaje 74","timestamp":{"$$date":1773781835979},"_id":"xnVBptJPer5AFarf"}
+{"msgId":"id_unique_75","jid":"5215575@s.whatsapp.net","text":"Mensaje 75","timestamp":{"$$date":1773781835980},"_id":"QwzUeL0EOxZUqXhn"}
+{"msgId":"id_unique_76","jid":"5215576@s.whatsapp.net","text":"Mensaje 76","timestamp":{"$$date":1773781835980},"_id":"oEIAYUpLBsuOTTKG"}
+{"msgId":"id_unique_77","jid":"5215577@s.whatsapp.net","text":"Mensaje 77","timestamp":{"$$date":1773781835981},"_id":"J5WEAxJWMJSVQAVl"}
+{"msgId":"id_unique_78","jid":"5215578@s.whatsapp.net","text":"Mensaje 78","timestamp":{"$$date":1773781835981},"_id":"PXva2exGPgjtufXD"}
+{"msgId":"id_unique_79","jid":"5215579@s.whatsapp.net","text":"Mensaje 79","timestamp":{"$$date":1773781835981},"_id":"Ab5i4EcXDtpIi6Xa"}
+{"msgId":"id_unique_80","jid":"5215580@s.whatsapp.net","text":"📷 Imagen","timestamp":{"$$date":1773781835982},"_id":"Gfrp7SMYAAOdZUz3"}
+{"msgId":"id_unique_81","jid":"5215581@s.whatsapp.net","text":"Mensaje 81","timestamp":{"$$date":1773781835982},"_id":"nHHQIIMK3zKBuNNm"}
+{"msgId":"id_unique_82","jid":"5215582@s.whatsapp.net","text":"Mensaje 82","timestamp":{"$$date":1773781835982},"_id":"h9nZQFVbSAaRm38j"}
+{"msgId":"id_unique_83","jid":"5215583@s.whatsapp.net","text":"Mensaje 83","timestamp":{"$$date":1773781835983},"_id":"0kBOwAwrpfNF4Ttk"}
+{"msgId":"id_unique_84","jid":"5215584@s.whatsapp.net","text":"Mensaje 84","timestamp":{"$$date":1773781835983},"_id":"fDggvkL7gzUgaNVt"}
+{"msgId":"id_unique_85","jid":"5215585@s.whatsapp.net","text":"Mensaje 85","timestamp":{"$$date":1773781835983},"_id":"woeNjIp4PQDXBjrX"}
+{"msgId":"id_unique_86","jid":"5215586@s.whatsapp.net","text":"Mensaje 86","timestamp":{"$$date":1773781835984},"_id":"vcZVECQsYF4z3UUg"}
+{"msgId":"id_unique_87","jid":"5215587@s.whatsapp.net","text":"Mensaje 87","timestamp":{"$$date":1773781835984},"_id":"bB4gahjGRGUlrpjQ"}
+{"msgId":"id_unique_88","jid":"5215588@s.whatsapp.net","text":"Mensaje 88","timestamp":{"$$date":1773781835984},"_id":"GyzmUE3e5QNI6Hei"}
+{"msgId":"id_unique_89","jid":"5215589@s.whatsapp.net","text":"Mensaje 89","timestamp":{"$$date":1773781835985},"_id":"spxAmnDpYAp2Q4ij"}
+{"msgId":"id_unique_90","jid":"5215590@s.whatsapp.net","text":"📷 Imagen","timestamp":{"$$date":1773781835985},"_id":"60qJpoidvQQiVg0m"}
+{"msgId":"id_unique_91","jid":"5215591@s.whatsapp.net","text":"Mensaje 91","timestamp":{"$$date":1773781835986},"_id":"77dpSBdXeolRsM6g"}
+{"msgId":"id_unique_92","jid":"5215592@s.whatsapp.net","text":"Mensaje 92","timestamp":{"$$date":1773781835986},"_id":"kUW2OJOOJ3KBTAMC"}
+{"msgId":"id_unique_93","jid":"5215593@s.whatsapp.net","text":"Mensaje 93","timestamp":{"$$date":1773781835987},"_id":"HJklu8NI6OuNDMYQ"}
+{"msgId":"id_unique_94","jid":"5215594@s.whatsapp.net","text":"Mensaje 94","timestamp":{"$$date":1773781835987},"_id":"xiQjtMygffDhMGhO"}
+{"msgId":"id_unique_95","jid":"5215595@s.whatsapp.net","text":"Mensaje 95","timestamp":{"$$date":1773781835988},"_id":"c7ZFKxe73a5iMjih"}
+{"msgId":"id_unique_96","jid":"5215596@s.whatsapp.net","text":"Mensaje 96","timestamp":{"$$date":1773781835988},"_id":"iBQ8Lq7NwuSVw3ho"}
+{"msgId":"id_unique_97","jid":"5215597@s.whatsapp.net","text":"Mensaje 97","timestamp":{"$$date":1773781835988},"_id":"6pQXRBCR2Ee8Y2Ni"}
+{"msgId":"id_unique_98","jid":"5215598@s.whatsapp.net","text":"Mensaje 98","timestamp":{"$$date":1773781835989},"_id":"SeqkVOVlMGeDR4Hk"}
+{"msgId":"id_unique_99","jid":"5215599@s.whatsapp.net","text":"Mensaje 99","timestamp":{"$$date":1773781835989},"_id":"Eg9M4OZ2me1xnPPM"}
+{"msgId":"id_unique_0","jid":"521550@s.whatsapp.net","text":"Mensaje Duplicado 0","timestamp":{"$$date":1773781835919},"_id":"nWMIZyfYhP7AxRcf"}
+{"msgId":"id_unique_1","jid":"521551@s.whatsapp.net","text":"Mensaje Duplicado 1","timestamp":{"$$date":1773781835936},"_id":"lbLhsFeq0Rf9xtMa"}
+{"msgId":"id_unique_2","jid":"521552@s.whatsapp.net","text":"Mensaje Duplicado 2","timestamp":{"$$date":1773781835937},"_id":"EGvE1zPbHRRQXpmO"}
+{"msgId":"id_unique_3","jid":"521553@s.whatsapp.net","text":"Mensaje Duplicado 3","timestamp":{"$$date":1773781835938},"_id":"thYN7qnu275bhkAZ"}
+{"msgId":"id_unique_4","jid":"521554@s.whatsapp.net","text":"Mensaje Duplicado 4","timestamp":{"$$date":1773781835939},"_id":"NFSX0uW6KmOeF82t"}
+{"msgId":"id_unique_5","jid":"521555@s.whatsapp.net","text":"Mensaje Duplicado 5","timestamp":{"$$date":1773781835940},"_id":"dNdRjllfytdrRtpA"}
+{"msgId":"id_unique_6","jid":"521556@s.whatsapp.net","text":"Mensaje Duplicado 6","timestamp":{"$$date":1773781835940},"_id":"jIz9nQdzmB5tCkE8"}
+{"msgId":"id_unique_7","jid":"521557@s.whatsapp.net","text":"Mensaje Duplicado 7","timestamp":{"$$date":1773781835941},"_id":"YNcAXzeeTKcYnh0M"}
+{"msgId":"id_unique_8","jid":"521558@s.whatsapp.net","text":"Mensaje Duplicado 8","timestamp":{"$$date":1773781835941},"_id":"ih7AQIvMdZTA5vVA"}
+{"msgId":"id_unique_9","jid":"521559@s.whatsapp.net","text":"Mensaje Duplicado 9","timestamp":{"$$date":1773781835942},"_id":"mqNh5Ni0c2GOjT0N"}
+{"msgId":"id_unique_10","jid":"5215510@s.whatsapp.net","text":"Mensaje Duplicado 10","timestamp":{"$$date":1773781835942},"_id":"6n6gDVrgK847F4B8"}
+{"msgId":"id_unique_11","jid":"5215511@s.whatsapp.net","text":"Mensaje Duplicado 11","timestamp":{"$$date":1773781835943},"_id":"3WZf1UuPU5IgVoYM"}
+{"msgId":"id_unique_12","jid":"5215512@s.whatsapp.net","text":"Mensaje Duplicado 12","timestamp":{"$$date":1773781835943},"_id":"6mOmWQxALJeMqBx0"}
+{"msgId":"id_unique_13","jid":"5215513@s.whatsapp.net","text":"Mensaje Duplicado 13","timestamp":{"$$date":1773781835944},"_id":"dLY1xUltcBdf85Vt"}
+{"msgId":"id_unique_14","jid":"5215514@s.whatsapp.net","text":"Mensaje Duplicado 14","timestamp":{"$$date":1773781835944},"_id":"6xLCGVz5IRYtxSiB"}
+{"msgId":"id_unique_15","jid":"5215515@s.whatsapp.net","text":"Mensaje Duplicado 15","timestamp":{"$$date":1773781835944},"_id":"gd1nv8cP8xSNm92u"}
+{"msgId":"id_unique_16","jid":"5215516@s.whatsapp.net","text":"Mensaje Duplicado 16","timestamp":{"$$date":1773781835945},"_id":"ukRBR9qQy2r9uX3N"}
+{"msgId":"id_unique_17","jid":"5215517@s.whatsapp.net","text":"Mensaje Duplicado 17","timestamp":{"$$date":1773781835946},"_id":"RQ7g5Kz4RLf6t66B"}
+{"msgId":"id_unique_18","jid":"5215518@s.whatsapp.net","text":"Mensaje Duplicado 18","timestamp":{"$$date":1773781835946},"_id":"fmtpjk7kV0WHaI5O"}
+{"msgId":"id_unique_19","jid":"5215519@s.whatsapp.net","text":"Mensaje Duplicado 19","timestamp":{"$$date":1773781835947},"_id":"iXCqEw3wZera36ix"}
+{"msgId":"id_unique_20","jid":"5215520@s.whatsapp.net","text":"Mensaje Duplicado 20","timestamp":{"$$date":1773781835947},"_id":"AeBgI3sFEgeCEqK9"}
+{"msgId":"id_unique_21","jid":"5215521@s.whatsapp.net","text":"Mensaje Duplicado 21","timestamp":{"$$date":1773781835948},"_id":"e8GKtY3OYZ2apQOj"}
+{"msgId":"id_unique_22","jid":"5215522@s.whatsapp.net","text":"Mensaje Duplicado 22","timestamp":{"$$date":1773781835948},"_id":"m3R6dZmm1J8BhF8g"}
+{"msgId":"id_unique_23","jid":"5215523@s.whatsapp.net","text":"Mensaje Duplicado 23","timestamp":{"$$date":1773781835949},"_id":"BcKQiWAI6T1071yB"}
+{"msgId":"id_unique_24","jid":"5215524@s.whatsapp.net","text":"Mensaje Duplicado 24","timestamp":{"$$date":1773781835950},"_id":"jDpwWXNz08U4AtbG"}
+{"msgId":"id_unique_25","jid":"5215525@s.whatsapp.net","text":"Mensaje Duplicado 25","timestamp":{"$$date":1773781835950},"_id":"mVRpX8m4Jw0NomOk"}
+{"msgId":"id_unique_26","jid":"5215526@s.whatsapp.net","text":"Mensaje Duplicado 26","timestamp":{"$$date":1773781835950},"_id":"ny3MXrJSfsvubKG8"}
+{"msgId":"id_unique_27","jid":"5215527@s.whatsapp.net","text":"Mensaje Duplicado 27","timestamp":{"$$date":1773781835951},"_id":"S8p95fmGHZZWvk6B"}
+{"msgId":"id_unique_28","jid":"5215528@s.whatsapp.net","text":"Mensaje Duplicado 28","timestamp":{"$$date":1773781835951},"_id":"5iJOVdjXsJgGz1FN"}
+{"msgId":"id_unique_29","jid":"5215529@s.whatsapp.net","text":"Mensaje Duplicado 29","timestamp":{"$$date":1773781835954},"_id":"oMp8DSRyukBfHuBe"}
+{"msgId":"id_unique_30","jid":"5215530@s.whatsapp.net","text":"Mensaje Duplicado 30","timestamp":{"$$date":1773781835955},"_id":"dUZmD6l4y63Qw2gg"}
+{"msgId":"id_unique_31","jid":"5215531@s.whatsapp.net","text":"Mensaje Duplicado 31","timestamp":{"$$date":1773781835955},"_id":"zkgw4svWd8WPKaqF"}
+{"msgId":"id_unique_32","jid":"5215532@s.whatsapp.net","text":"Mensaje Duplicado 32","timestamp":{"$$date":1773781835956},"_id":"CDo3qpGfU6WZgha4"}
+{"msgId":"id_unique_33","jid":"5215533@s.whatsapp.net","text":"Mensaje Duplicado 33","timestamp":{"$$date":1773781835956},"_id":"SabCR0j82IwQs1Qy"}
+{"msgId":"id_unique_34","jid":"5215534@s.whatsapp.net","text":"Mensaje Duplicado 34","timestamp":{"$$date":1773781835960},"_id":"6qh8o2537V1ocf7h"}
+{"msgId":"id_unique_35","jid":"5215535@s.whatsapp.net","text":"Mensaje Duplicado 35","timestamp":{"$$date":1773781835960},"_id":"HabKJgcfCUgUHL4N"}
+{"msgId":"id_unique_36","jid":"5215536@s.whatsapp.net","text":"Mensaje Duplicado 36","timestamp":{"$$date":1773781835961},"_id":"t2MoB7GDjBSkXu05"}
+{"msgId":"id_unique_37","jid":"5215537@s.whatsapp.net","text":"Mensaje Duplicado 37","timestamp":{"$$date":1773781835962},"_id":"lJI6UBvpmgRWRMIU"}
+{"msgId":"id_unique_38","jid":"5215538@s.whatsapp.net","text":"Mensaje Duplicado 38","timestamp":{"$$date":1773781835962},"_id":"W5FcAafo0XPvyKCV"}
+{"msgId":"id_unique_39","jid":"5215539@s.whatsapp.net","text":"Mensaje Duplicado 39","timestamp":{"$$date":1773781835963},"_id":"90qg0TlSIIKzKw2k"}
+{"msgId":"id_unique_40","jid":"5215540@s.whatsapp.net","text":"Mensaje Duplicado 40","timestamp":{"$$date":1773781835964},"_id":"521afu4GEpljJ5Cn"}
+{"msgId":"id_unique_41","jid":"5215541@s.whatsapp.net","text":"Mensaje Duplicado 41","timestamp":{"$$date":1773781835964},"_id":"YEfGPJg0n3Ca5kZi"}
+{"msgId":"id_unique_42","jid":"5215542@s.whatsapp.net","text":"Mensaje Duplicado 42","timestamp":{"$$date":1773781835965},"_id":"oSHL2UbffAkr4IwA"}
+{"msgId":"id_unique_43","jid":"5215543@s.whatsapp.net","text":"Mensaje Duplicado 43","timestamp":{"$$date":1773781835965},"_id":"88iQVAZ0R7PMe58R"}
+{"msgId":"id_unique_44","jid":"5215544@s.whatsapp.net","text":"Mensaje Duplicado 44","timestamp":{"$$date":1773781835966},"_id":"Qa2XDvvwg79E0DUI"}
+{"msgId":"id_unique_45","jid":"5215545@s.whatsapp.net","text":"Mensaje Duplicado 45","timestamp":{"$$date":1773781835966},"_id":"siesPBxB6o6UqJWF"}
+{"msgId":"id_unique_46","jid":"5215546@s.whatsapp.net","text":"Mensaje Duplicado 46","timestamp":{"$$date":1773781835967},"_id":"odFmZdER8ZYTboIk"}
+{"msgId":"id_unique_47","jid":"5215547@s.whatsapp.net","text":"Mensaje Duplicado 47","timestamp":{"$$date":1773781835967},"_id":"TYCy519uopMsqC2h"}
+{"msgId":"id_unique_48","jid":"5215548@s.whatsapp.net","text":"Mensaje Duplicado 48","timestamp":{"$$date":1773781835967},"_id":"rUUi6uTAVhecpbMI"}
+{"msgId":"id_unique_49","jid":"5215549@s.whatsapp.net","text":"Mensaje Duplicado 49","timestamp":{"$$date":1773781835968},"_id":"oJEVXfIs5qBoZpny"}
+{"msgId":"id_unique_50","jid":"5215550@s.whatsapp.net","text":"Mensaje Duplicado 50","timestamp":{"$$date":1773781835968},"_id":"2KyrySulv7fB9cbL"}
+{"msgId":"id_unique_51","jid":"5215551@s.whatsapp.net","text":"Mensaje Duplicado 51","timestamp":{"$$date":1773781835969},"_id":"tISq23mdoaOz9O9w"}
+{"msgId":"id_unique_52","jid":"5215552@s.whatsapp.net","text":"Mensaje Duplicado 52","timestamp":{"$$date":1773781835969},"_id":"ySqHpjgQw0efgSoU"}
+{"msgId":"id_unique_53","jid":"5215553@s.whatsapp.net","text":"Mensaje Duplicado 53","timestamp":{"$$date":1773781835970},"_id":"bGdxHAuFLlV5nsXm"}
+{"msgId":"id_unique_54","jid":"5215554@s.whatsapp.net","text":"Mensaje Duplicado 54","timestamp":{"$$date":1773781835970},"_id":"YcLJm0PFOZFDDDW9"}
+{"msgId":"id_unique_55","jid":"5215555@s.whatsapp.net","text":"Mensaje Duplicado 55","timestamp":{"$$date":1773781835970},"_id":"81BJIve0nL3eZX0g"}
+{"msgId":"id_unique_56","jid":"5215556@s.whatsapp.net","text":"Mensaje Duplicado 56","timestamp":{"$$date":1773781835971},"_id":"Io0xj7SCJBBTOezr"}
+{"msgId":"id_unique_57","jid":"5215557@s.whatsapp.net","text":"Mensaje Duplicado 57","timestamp":{"$$date":1773781835971},"_id":"xyaHs5KUmR0sHWCQ"}
+{"msgId":"id_unique_58","jid":"5215558@s.whatsapp.net","text":"Mensaje Duplicado 58","timestamp":{"$$date":1773781835972},"_id":"6sQZaBDTY0csXdRK"}
+{"msgId":"id_unique_59","jid":"5215559@s.whatsapp.net","text":"Mensaje Duplicado 59","timestamp":{"$$date":1773781835973},"_id":"y1X6ECWSVYd2bero"}
+{"msgId":"id_unique_60","jid":"5215560@s.whatsapp.net","text":"Mensaje Duplicado 60","timestamp":{"$$date":1773781835973},"_id":"CYxgsdF94IUo0JfA"}
+{"msgId":"id_unique_61","jid":"5215561@s.whatsapp.net","text":"Mensaje Duplicado 61","timestamp":{"$$date":1773781835974},"_id":"a1Sq5tJapUeOBvDW"}
+{"msgId":"id_unique_62","jid":"5215562@s.whatsapp.net","text":"Mensaje Duplicado 62","timestamp":{"$$date":1773781835974},"_id":"11hZSZgXO035f75o"}
+{"msgId":"id_unique_63","jid":"5215563@s.whatsapp.net","text":"Mensaje Duplicado 63","timestamp":{"$$date":1773781835974},"_id":"ucbf0ejXOLwFXDy8"}
+{"msgId":"id_unique_64","jid":"5215564@s.whatsapp.net","text":"Mensaje Duplicado 64","timestamp":{"$$date":1773781835975},"_id":"pGsvKVsQHLsiBOGq"}
+{"msgId":"id_unique_65","jid":"5215565@s.whatsapp.net","text":"Mensaje Duplicado 65","timestamp":{"$$date":1773781835975},"_id":"kmOG2zU0DwXvWFhE"}
+{"msgId":"id_unique_66","jid":"5215566@s.whatsapp.net","text":"Mensaje Duplicado 66","timestamp":{"$$date":1773781835976},"_id":"kwlXSKrqFDzxTUuC"}
+{"msgId":"id_unique_67","jid":"5215567@s.whatsapp.net","text":"Mensaje Duplicado 67","timestamp":{"$$date":1773781835976},"_id":"xjdx269mWsTgPEgV"}
+{"msgId":"id_unique_68","jid":"5215568@s.whatsapp.net","text":"Mensaje Duplicado 68","timestamp":{"$$date":1773781835976},"_id":"1QD8SC0SPbGIyH13"}
+{"msgId":"id_unique_69","jid":"5215569@s.whatsapp.net","text":"Mensaje Duplicado 69","timestamp":{"$$date":1773781835977},"_id":"sfEJmSfHDFunkcYQ"}
+{"msgId":"id_unique_70","jid":"5215570@s.whatsapp.net","text":"Mensaje Duplicado 70","timestamp":{"$$date":1773781835977},"_id":"kcHswRBivlDPdSrn"}
+{"msgId":"id_unique_71","jid":"5215571@s.whatsapp.net","text":"Mensaje Duplicado 71","timestamp":{"$$date":1773781835978},"_id":"6zG16CMFKI1uaga4"}
+{"msgId":"id_unique_72","jid":"5215572@s.whatsapp.net","text":"Mensaje Duplicado 72","timestamp":{"$$date":1773781835978},"_id":"h7JKFVT6GGQYiOXv"}
+{"msgId":"id_unique_73","jid":"5215573@s.whatsapp.net","text":"Mensaje Duplicado 73","timestamp":{"$$date":1773781835979},"_id":"F97AvOy4Hb2Qjyyk"}
+{"msgId":"id_unique_74","jid":"5215574@s.whatsapp.net","text":"Mensaje Duplicado 74","timestamp":{"$$date":1773781835979},"_id":"xnVBptJPer5AFarf"}
+{"msgId":"id_unique_75","jid":"5215575@s.whatsapp.net","text":"Mensaje Duplicado 75","timestamp":{"$$date":1773781835980},"_id":"QwzUeL0EOxZUqXhn"}
+{"msgId":"id_unique_76","jid":"5215576@s.whatsapp.net","text":"Mensaje Duplicado 76","timestamp":{"$$date":1773781835980},"_id":"oEIAYUpLBsuOTTKG"}
+{"msgId":"id_unique_77","jid":"5215577@s.whatsapp.net","text":"Mensaje Duplicado 77","timestamp":{"$$date":1773781835981},"_id":"J5WEAxJWMJSVQAVl"}
+{"msgId":"id_unique_78","jid":"5215578@s.whatsapp.net","text":"Mensaje Duplicado 78","timestamp":{"$$date":1773781835981},"_id":"PXva2exGPgjtufXD"}
+{"msgId":"id_unique_79","jid":"5215579@s.whatsapp.net","text":"Mensaje Duplicado 79","timestamp":{"$$date":1773781835981},"_id":"Ab5i4EcXDtpIi6Xa"}
+{"msgId":"id_unique_80","jid":"5215580@s.whatsapp.net","text":"Mensaje Duplicado 80","timestamp":{"$$date":1773781835982},"_id":"Gfrp7SMYAAOdZUz3"}
+{"msgId":"id_unique_81","jid":"5215581@s.whatsapp.net","text":"Mensaje Duplicado 81","timestamp":{"$$date":1773781835982},"_id":"nHHQIIMK3zKBuNNm"}
+{"msgId":"id_unique_82","jid":"5215582@s.whatsapp.net","text":"Mensaje Duplicado 82","timestamp":{"$$date":1773781835982},"_id":"h9nZQFVbSAaRm38j"}
+{"msgId":"id_unique_83","jid":"5215583@s.whatsapp.net","text":"Mensaje Duplicado 83","timestamp":{"$$date":1773781835983},"_id":"0kBOwAwrpfNF4Ttk"}
+{"msgId":"id_unique_84","jid":"5215584@s.whatsapp.net","text":"Mensaje Duplicado 84","timestamp":{"$$date":1773781835983},"_id":"fDggvkL7gzUgaNVt"}
+{"msgId":"id_unique_85","jid":"5215585@s.whatsapp.net","text":"Mensaje Duplicado 85","timestamp":{"$$date":1773781835983},"_id":"woeNjIp4PQDXBjrX"}
+{"msgId":"id_unique_86","jid":"5215586@s.whatsapp.net","text":"Mensaje Duplicado 86","timestamp":{"$$date":1773781835984},"_id":"vcZVECQsYF4z3UUg"}
+{"msgId":"id_unique_87","jid":"5215587@s.whatsapp.net","text":"Mensaje Duplicado 87","timestamp":{"$$date":1773781835984},"_id":"bB4gahjGRGUlrpjQ"}
+{"msgId":"id_unique_88","jid":"5215588@s.whatsapp.net","text":"Mensaje Duplicado 88","timestamp":{"$$date":1773781835984},"_id":"GyzmUE3e5QNI6Hei"}
+{"msgId":"id_unique_89","jid":"5215589@s.whatsapp.net","text":"Mensaje Duplicado 89","timestamp":{"$$date":1773781835985},"_id":"spxAmnDpYAp2Q4ij"}
+{"msgId":"id_unique_90","jid":"5215590@s.whatsapp.net","text":"Mensaje Duplicado 90","timestamp":{"$$date":1773781835985},"_id":"60qJpoidvQQiVg0m"}
+{"msgId":"id_unique_91","jid":"5215591@s.whatsapp.net","text":"Mensaje Duplicado 91","timestamp":{"$$date":1773781835986},"_id":"77dpSBdXeolRsM6g"}
+{"msgId":"id_unique_92","jid":"5215592@s.whatsapp.net","text":"Mensaje Duplicado 92","timestamp":{"$$date":1773781835986},"_id":"kUW2OJOOJ3KBTAMC"}
+{"msgId":"id_unique_93","jid":"5215593@s.whatsapp.net","text":"Mensaje Duplicado 93","timestamp":{"$$date":1773781835987},"_id":"HJklu8NI6OuNDMYQ"}
+{"msgId":"id_unique_94","jid":"5215594@s.whatsapp.net","text":"Mensaje Duplicado 94","timestamp":{"$$date":1773781835987},"_id":"xiQjtMygffDhMGhO"}
+{"msgId":"id_unique_95","jid":"5215595@s.whatsapp.net","text":"Mensaje Duplicado 95","timestamp":{"$$date":1773781835988},"_id":"c7ZFKxe73a5iMjih"}
+{"msgId":"id_unique_96","jid":"5215596@s.whatsapp.net","text":"Mensaje Duplicado 96","timestamp":{"$$date":1773781835988},"_id":"iBQ8Lq7NwuSVw3ho"}
+{"msgId":"id_unique_97","jid":"5215597@s.whatsapp.net","text":"Mensaje Duplicado 97","timestamp":{"$$date":1773781835988},"_id":"6pQXRBCR2Ee8Y2Ni"}
+{"msgId":"id_unique_98","jid":"5215598@s.whatsapp.net","text":"Mensaje Duplicado 98","timestamp":{"$$date":1773781835989},"_id":"SeqkVOVlMGeDR4Hk"}
+{"msgId":"id_unique_99","jid":"5215599@s.whatsapp.net","text":"Mensaje Duplicado 99","timestamp":{"$$date":1773781835989},"_id":"Eg9M4OZ2me1xnPPM"}

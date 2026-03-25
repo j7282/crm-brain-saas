@@ -1,10 +1,6 @@
-
 import { io } from 'socket.io-client';
 
-// J7282: URL de producción corregida a Railway
-const BACKEND_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:3001' 
-  : 'https://zestful-alignment-production-c71f.up.railway.app';
+const BACKEND_URL = 'https://zestful-alignment-production-c71f.up.railway.app';
 
 export const socket = io(BACKEND_URL, {
   autoConnect: true,
