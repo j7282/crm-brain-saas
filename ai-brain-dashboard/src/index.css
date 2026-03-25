@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;700;800&display=swap');
+
+:root {
+  /* WhatsApp Dark Mode Palette */
+  --bg-primary: #0b141a;
+  /* Main Chat Background */
+  --bg-secondary: #202c33;
+  /* Sidebar & Headers */
+  --bg-tertiary: #111b21;
+  /* Contact List Items */
+
+  /* Text Colors */
+  --text-primary: #e9edef;
+  --text-secondary: #8696a0;
+  --text-tertiary: #667781;
+
+  /* WhatsApp Specific Colors */
+  --wa-green: #25D366;
+  --wa-teal: #00a884;
+  --wa-light-green: #53bdeb;
+  --wa-bubble-sent: #005c4b;
+  --wa-bubble-received: #202c33;
+  --wa-border: #222d34;
+  --accent-cyan: #00a884;
+  /* Re-mapping accent to WA Teal */
+
+  /* Sentiment System (Keeping it but toning it down) */
+  --sentiment-red: #f15c5c;
+  --sentiment-yellow: #ffd279;
+  --sentiment-green: #00ff66;
+
+  /* UI Borders & Shadows */
+  --border-color: #222d34;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 2px 5px rgba(0, 0, 0, 0.5);
+
+  /* Typography */
+  --font-body: 'Inter', sans-serif;
+  --font-heading: 'Outfit', sans-serif;
+
+  /* Layout Constants */
+  --sidebar-width: 400px;
+  /* WhatsApp style width */
+  --border-radius: 8px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+a {
+  color: var(--accent-cyan);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+a:hover {
+  text-shadow: var(--shadow-neon);
+}
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+/* Animations */
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 0 0 var(--accent-cyan-glow);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(0, 240, 255, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 240, 255, 0);
+  }
+}
+
+.glow-effect {
+  animation: pulseGlow 2s infinite;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}

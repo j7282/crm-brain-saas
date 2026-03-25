@@ -1,0 +1,6 @@
+# Requisitos del Proyecto
+# Este bot ha sido optimizado para usar módulos NATIVOS de Python (sin dependencias externas).
+# Se incluye este archivo para cumplir con la estructura solicitada en el desafío.
+
+# Si deseas usar la librería externa python-telegram-bot en el futuro:
+# python-telegram-bot==20.x

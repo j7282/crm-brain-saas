@@ -11,4 +11,12 @@ _backup_index.html.old
 uploads/
 dist
 .DS_Store
-auth_info_baileys/
+COMO_CONSEGUIR_API_KEYS.md
+DEPLOY_FINAL.md
+MEJORAS_IMPLEMENTADAS.md
+package-lock.json
+ai-brain-backend/package-lock.json
+ai-brain-backend/.env
+ai-brain-backend/data/
+ai-brain-backend/test_data/
+ai-brain-backend/wa_auth*
