@@ -1,11 +1,9 @@
-```
 import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react'
 import socket from './socket'
 import './App.css'
 
-// J7282: Corregido a Railway por auditoría de Claude
+// J7282: Backend en Railway
 const BACKEND_URL = 'https://zestful-alignment-production-c71f.up.railway.app';
-const API_URL = "https://api.anthropic.com/v1/messages";
 import {
   BrainCircuit,
   MessageSquareText,
@@ -222,6 +220,7 @@ function App() {
   const [authMode, setAuthMode] = useState('login'); // 'login' or 'register'
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
+  const [authName, setAuthName] = useState('');
   const [isInterventionMode, setIsInterventionMode] = useState(false);
   const [suggestedResponse, setSuggestedResponse] = useState('');
   const [activeBrainId, setActiveBrainId] = useState(localStorage.getItem('activeBrainId'));
@@ -614,103 +613,116 @@ function App() {
 
   const renderAuth = () => {
     return (
-      <div className="google-auth-container">
-        <div className="google-auth-card">
-          <div className="google-logo">
-            <span style={{ color: '#4285F4' }}>G</span>
-            <span style={{ color: '#EA4335' }}>o</span>
-            <span style={{ color: '#FBBC05' }}>o</span>
-            <span style={{ color: '#4285F4' }}>g</span>
-            <span style={{ color: '#34A853' }}>l</span>
-            <span style={{ color: '#EA4335' }}>e</span>
-          </div>
-          
-          <h1 className="google-title">
-            {authMode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
-          </h1>
-          <p className="google-subtitle">
-            {authMode === 'login' ? 'Ir a Antigravity Dashboard' : 'Para continuar a Antigravity'}
-          </p>
-
-          <div className="google-input-group">
-            <input
-              type="email"
-              className="google-input"
-              value={authEmail}
-              onChange={e => setAuthEmail(e.target.value)}
-              required
-              placeholder=" "
-              id="google-email"
-            />
-            <label className="google-label" htmlFor="google-email">Correo electrónico</label>
+      <div style={{
+        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'linear-gradient(135deg, #0a0f1c 0%, #0d1b2a 50%, #1b2838 100%)',
+        fontFamily: "'Inter', -apple-system, sans-serif"
+      }}>
+        <div style={{
+          width: '100%', maxWidth: '420px', padding: '40px',
+          background: 'rgba(15, 23, 42, 0.85)', borderRadius: '20px',
+          border: '1px solid rgba(52, 211, 153, 0.15)',
+          boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(20px)'
+        }}>
+          {/* Logo Darwin */}
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <div style={{
+              width: '56px', height: '56px', borderRadius: '50%',
+              border: '2px solid #34d399', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', margin: '0 auto 16px', fontSize: '24px'
+            }}>🧠</div>
+            <h1 style={{ margin: 0, fontSize: '1.8rem', letterSpacing: '2px' }}>
+              <span style={{ color: '#e2e8f0', fontWeight: 300 }}>DAR</span>
+              <span style={{ color: '#34d399', fontWeight: 700 }}>WIN</span>
+            </h1>
+            <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.75rem', letterSpacing: '3px', textTransform: 'uppercase' }}>
+              CRM Neuronal · WhatsApp
+            </p>
           </div>
 
-          <div className="google-input-group">
-            <input
-              type="password"
-              className="google-input"
-              value={authPassword}
-              onChange={e => setAuthPassword(e.target.value)}
-              required
-              placeholder=" "
-              id="google-password"
-            />
-            <label className="google-label" htmlFor="google-password">Contraseña</label>
+          {/* Tabs */}
+          <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '24px' }}>
+            <button onClick={() => setAuthMode('login')} style={{
+              flex: 1, padding: '10px', background: 'none', border: 'none', cursor: 'pointer',
+              color: authMode === 'login' ? '#34d399' : '#64748b', fontSize: '0.9rem', fontWeight: 600,
+              borderBottom: authMode === 'login' ? '2px solid #34d399' : '2px solid transparent'
+            }}>Iniciar Sesión</button>
+            <button onClick={() => setAuthMode('register')} style={{
+              flex: 1, padding: '10px', background: 'none', border: 'none', cursor: 'pointer',
+              color: authMode === 'register' ? '#34d399' : '#64748b', fontSize: '0.9rem', fontWeight: 600,
+              borderBottom: authMode === 'register' ? '2px solid #34d399' : '2px solid transparent'
+            }}>Crear Cuenta</button>
           </div>
 
-          <p className="google-forgot">
-            ¿Olvidaste tu contraseña?
-          </p>
+          {/* Form */}
+          {authMode === 'register' && (
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.8rem', marginBottom: '6px' }}>Nombre</label>
+              <input type="text" value={authName || ''} onChange={e => setAuthName(e.target.value)}
+                placeholder="Tu nombre" style={{
+                  width: '100%', padding: '12px 16px', background: 'rgba(30,41,59,0.8)',
+                  border: '1px solid rgba(52,211,153,0.2)', borderRadius: '10px',
+                  color: '#e2e8f0', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box'
+                }} />
+            </div>
+          )}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.8rem', marginBottom: '6px' }}>Correo electrónico</label>
+            <input type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)}
+              placeholder="tu@email.com" style={{
+                width: '100%', padding: '12px 16px', background: 'rgba(30,41,59,0.8)',
+                border: '1px solid rgba(52,211,153,0.2)', borderRadius: '10px',
+                color: '#e2e8f0', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box'
+              }} />
+          </div>
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ display: 'block', color: '#94a3b8', fontSize: '0.8rem', marginBottom: '6px' }}>Contraseña</label>
+            <input type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)}
+              placeholder="••••••••" style={{
+                width: '100%', padding: '12px 16px', background: 'rgba(30,41,59,0.8)',
+                border: '1px solid rgba(52,211,153,0.2)', borderRadius: '10px',
+                color: '#e2e8f0', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box'
+              }} />
+          </div>
 
-          <div className="google-footer-actions">
-            <button
-              className="google-link-btn"
-              onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
-            >
-              {authMode === 'login' ? 'Crear cuenta' : 'Iniciar sesión en su lugar'}
-            </button>
-            <button
-              className="google-next-btn"
-              onClick={async () => {
-                const endpoint = authMode === 'login' ? 'login' : 'register';
-                try {
-                  const res = await fetch(`${BACKEND_URL}/api/auth/${endpoint}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: authEmail, password: authPassword })
-                  });
-                  const data = await res.json();
-                  if (data.token) {
-                    setToken(data.token);
-                    localStorage.setItem('darwin_token', data.token); // J7282: Estandarizado por auditoría de Claude
-                    setUser(data.user);
-                  } else {
-                    alert(data.error || "Algo salió mal");
-                  }
-                } catch (_err) {
-                  alert("Error de conexión con el servidor. ¿Está encendido el backend?");
-                }
-              }}
-            >
-              Siguiente
-            </button>
-          </div>
-        </div>
-        
-        <div className="google-auth-footer">
-          <div className="google-footer-left">
-            <span>Español (España)</span>
-            <ChevronDown size={14} />
-          </div>
-          <div className="google-footer-right">
-            <span>Ayuda</span>
-            <span>Privacidad</span>
-            <span>Términos</span>
-          </div>
+          {/* Submit */}
+          <button onClick={async () => {
+            const endpoint = authMode === 'login' ? 'login' : 'register';
+            try {
+              const body = authMode === 'register' 
+                ? { name: authName, email: authEmail, password: authPassword }
+                : { email: authEmail, password: authPassword };
+              const res = await fetch(`${BACKEND_URL}/api/auth/${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+              });
+              const data = await res.json();
+              if (data.token) {
+                setToken(data.token);
+                localStorage.setItem('darwin_token', data.token);
+                setUser(data.user);
+              } else {
+                alert(data.error || "Algo salió mal");
+              }
+            } catch (_err) {
+              alert("Error de conexión con el servidor");
+            }
+          }} style={{
+            width: '100%', padding: '14px', background: 'linear-gradient(135deg, #34d399, #10b981)',
+            border: 'none', borderRadius: '12px', color: '#0f172a', fontSize: '1rem',
+            fontWeight: 700, cursor: 'pointer', letterSpacing: '0.5px',
+            transition: 'all 0.3s', boxShadow: '0 4px 15px rgba(52,211,153,0.3)'
+          }}>
+            {authMode === 'login' ? 'Entrar al Dashboard' : 'Crear mi cuenta'}
+          </button>
         </div>
       </div>
     );
   };
+
+
 
   const renderInterventionModal = () => {
     return (
