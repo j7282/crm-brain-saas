@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express    = require('express');
+const path       = require('path');
 const http       = require('http');
 const { Server } = require('socket.io');
 const cors       = require('cors');
@@ -25,6 +26,9 @@ const gemini = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+
+// J7282: Servir frontend React desde el backend
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Multi-usuario: un socket de WA por usuario
 const waSessions = new Map();
@@ -900,10 +904,17 @@ async function reconnectSessions() {
   users.forEach((u,i) => setTimeout(()=>connectWhatsApp(u._id.toString()),2000*i));
 }
 
+// J7282: SPA catch-all - cualquier ruta que no sea /api/* sirve el React app
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 db.connect().then(() => {
   server.listen(PORT, async () => {
-    console.log('Darwin CRM Backend en puerto '+PORT);
+    console.log('Darwin CRM Backend + Frontend en puerto '+PORT);
     await reconnectSessions();
   });
 });
