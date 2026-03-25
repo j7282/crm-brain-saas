@@ -1,4 +1,4 @@
-```
+
 import { io } from 'socket.io-client';
 
 // J7282: URL de producción corregida a Railway
